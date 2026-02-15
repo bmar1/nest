@@ -119,12 +119,8 @@ bashcurl -X POST http://<API_GATEWAY_URL>/api/v1/search \
   }'
 Poll for results:
 bashcurl http://<API_GATEWAY_URL>/api/v1/search/<SEARCH_ID>/results
-```
 
 ---
-
-## Architecture
-
 
 ### Flow:
 1. **User submits search** → React app calls API Gateway
@@ -187,27 +183,10 @@ Commit changes (git commit -m 'Add amazing feature')
 Push to branch (git push origin feature/amazing-feature)
 Open a Pull Request
 
-Code Standards:
-
-Backend: Google Java Style Guide + 86% test coverage
-Frontend: ESLint + Prettier + TypeScript strict mode
-Commits: Conventional Commits format
-
-
-License
-MIT License - see LICENSE for details.
-
 Acknowledgments
 
 Apartment hunters everywhere who inspired this project
 Anthropic for Claude (used to refine design patterns)
 Spring Boot & React communities for amazing documentation
-
-
-Contact
-Project Maintainer: Your Name
-Email: your.email@example.com
-Portfolio: https://yourportfolio.com
-LinkedIn: https://linkedin.com/in/yourprofile
 
 Built with ☕, late nights, and a deep hatred for apartment hunting.

@@ -1,11 +1,11 @@
-🏡 Nest
-Stop scrolling. Start scoring.
+🏡 # Nest
+### Stop scrolling. Start scoring.
 
-What It Does
+## What It Does
 Nest is an intelligent apartment search platform that scrapes multiple rental listing sites, aggregates results, and ranks apartments based on your priorities—not generic algorithms. Tell us what matters (budget, space, amenities, or a balanced approach), and we deliver scored results in under 3 minutes.
 No more juggling 47 browser tabs. No more manual spreadsheets. Just your top matches, ranked 0-100.
 
-Objective
+## Objective
 Build a production-ready, scalable apartment recommendation system that demonstrates:
 
 Distributed systems architecture (Kubernetes orchestration, message queues, microservices)
@@ -14,9 +14,7 @@ Smart ranking algorithms based on user-defined priorities
 Full-stack development with modern cloud infrastructure (AWS EKS, RDS, SQS)
 CI/CD best practices with automated testing and deployment
 
-This is a portfolio project designed to showcase senior-level system design while solving a real problem: apartment hunting sucks.
-
-Key Features
+## Key Features
 Priority-Based Matching
 Users select one focus area (Budget, Space, Amenities, or Balanced), and apartments are scored using weighted algorithms that reflect what actually matters to them.
 
@@ -46,7 +44,7 @@ Dead Letter Queue for persistently failing jobs
 Partial results returned if ≥10 apartments successfully scraped
 
 
-Quick Start
+## Quick Start
 Prerequisites
 
 AWS Account (with EKS, RDS, SQS access)

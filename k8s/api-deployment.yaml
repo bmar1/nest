@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-config
+  namespace: nest
+data:
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  DB_NAME: nest
+  DB_USER: postgres
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: api-secret
+  namespace: nest
+type: Opaque
+stringData:
+  DB_PASSWORD: postgres
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nest-api
+  namespace: nest
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nest-api
+  template:
+    metadata:
+      labels:
+        app: nest-api
+    spec:
+      containers:
+      - name: nest-api
+        image: YOUR_DOCKERHUB_USERNAME/nest-api:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        envFrom:
+        - configMapRef:
+            name: api-config
+        - secretRef:
+            name: api-secret
+        livenessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nest-api
+  namespace: nest
+spec:
+  selector:
+    app: nest-api
+  ports:
+  - port: 8080
+    targetPort: 8080
+  type: ClusterIP

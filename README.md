@@ -1,215 +1,295 @@
-🏡 Nest
-Stop scrolling. Start scoring.
+# 🏡 Nest
 
-What It Does
-Nest is an intelligent apartment search platform that scrapes multiple rental listing sites, aggregates results, and ranks apartments based on your priorities—not generic algorithms. Tell us what matters (budget, space, amenities, or a balanced approach), and we deliver scored results in under 3 minutes.
-No more juggling 47 browser tabs. No more manual spreadsheets. Just your top matches, ranked 0-100.
+**Stop scrolling. Start scoring.**
 
-Objective
-Build a production-ready, scalable apartment recommendation system that demonstrates:
+Nest is an intelligent apartment search platform that scrapes Craigslist Toronto, aggregates listings, and ranks apartments based on your priorities—not generic algorithms. Tell us what matters (Budget, Space, Amenities, or Balanced), and we deliver scored results.
 
-Distributed systems architecture (Kubernetes orchestration, message queues, microservices)
-Real-time web scraping at scale with fault tolerance
-Smart ranking algorithms based on user-defined priorities
-Full-stack development with modern cloud infrastructure (AWS EKS, RDS, SQS)
-CI/CD best practices with automated testing and deployment
+## 📋 Features
 
-This is a portfolio project designed to showcase senior-level system design while solving a real problem: apartment hunting sucks.
+- **Priority-Based Matching**: Choose Budget/Space/Amenities/Balanced priority
+- **Smart Scoring Algorithm**: 0-100 score based on price, space, amenities, and lease flexibility
+- **Microservices Architecture**: Spring Boot REST API + React frontend
+- **Kubernetes-Ready**: Deploy to DigitalOcean Kubernetes with included manifests
+- **Docker Support**: Full containerization with Docker Compose for local development
 
-Key Features
-Priority-Based Matching
-Users select one focus area (Budget, Space, Amenities, or Balanced), and apartments are scored using weighted algorithms that reflect what actually matters to them.
+## 🏗️ Architecture
 
-Real-Time Scraping
-Kubernetes workers scrape live listings from multiple platforms (Zillow, Apartments.com) simultaneously, pulling fresh data on every search.
-
-Smart Scoring Algorithm
-Each apartment receives a 0-100 score calculated from:
-
-Price Score (0-30 pts): Lower is better, relative to user's max budget
-Space Score (0-30 pts): Bigger is better, relative to user's minimum
-Amenities Score (0-20 pts): In-unit laundry, parking, gym, etc.
-Lease Flexibility Score (0-20 pts): Month-to-month > 12-month leases
-
-Scores are multiplied by priority weights (e.g., Budget Focused = 1.5x price weight).
-
-Async Processing
-Searches are queued in SQS, processed asynchronously by EKS workers, and polled via REST API—no blocking, no timeouts.
-
-Transparent Results
-Users see exactly why an apartment scored high: match percentage, amenity breakdowns, and comparable listings.
-Fault Tolerance
-
-Scraping failures skip individual listings without killing the entire job
-SQS retries (3 attempts with exponential backoff)
-Dead Letter Queue for persistently failing jobs
-Partial results returned if ≥10 apartments successfully scraped
-
-
-Quick Start
-Prerequisites
-
-AWS Account (with EKS, RDS, SQS access)
-Docker installed locally
-kubectl configured for EKS cluster
-Node.js 18+ (for frontend)
-Java 17+ (for Spring Boot backend)
-PostgreSQL client (for local DB testing)
-
-1. Clone the Repository
-bashgit clone https://github.com/bmar1/nest.git
-cd nest
-1. Set Up Infrastructure (AWS)
-Create RDS PostgreSQL Instance
-bashaws rds create-db-instance \
-  --db-instance-identifier nest-db \
-  --db-instance-class db.t3.micro \
-  --engine postgres \
-  --master-username admin \
-  --master-user-password <YOUR_PASSWORD> \
-  --allocated-storage 20
-Create SQS Queue
-bashaws sqs create-queue --queue-name nest-scraping-queue
-aws sqs create-queue --queue-name nest-scraping-dlq
-Create EKS Cluster
-basheksctl create cluster \
-  --name nest-cluster \
-  --region us-east-1 \
-  --nodegroup-name nest-workers \
-  --node-type t3.small \
-  --nodes 2 \
-  --nodes-min 1 \
-  --nodes-max 5
-1. Configure Environment Variables
-Create backend/.env:
-envDB_HOST=<RDS_ENDPOINT>
-DB_PORT=5432
-DB_NAME=nest
-DB_USER=admin
-DB_PASSWORD=<YOUR_PASSWORD>
-
-SQS_QUEUE_URL=<YOUR_SQS_QUEUE_URL>
-AWS_REGION=us-east-1
-
-JWT_SECRET=<GENERATE_RANDOM_SECRET>
-4. Build & Deploy Backend
-Build Docker Image
-bashcd backend
-docker build -t nest-api:latest .
-docker tag nest-api:latest <YOUR_ECR_REPO>/nest-api:latest
-docker push <YOUR_ECR_REPO>/nest-api:latest
-Deploy to EKS
-bashkubectl apply -f k8s/api-deployment.yaml
-kubectl apply -f k8s/worker-deployment.yaml
-kubectl apply -f k8s/service.yaml
-Run Database Migrations
-bashkubectl exec -it <API_POD_NAME> -- ./gradlew flywayMigrate
-5. Run Frontend Locally
-bashcd frontend
-npm install
-npm run dev
-Visit http://localhost:5173
-6. Test End-to-End
-bashcurl -X POST http://<API_GATEWAY_URL>/api/v1/search \
-  -H "Content-Type: application/json" \
-  -d '{
-    "priority": "BUDGET",
-    "max_price": 2500,
-    "min_sqft": 800,
-    "desired_amenities": ["in_unit_laundry", "parking"],
-    "max_lease_months": 12
-  }'
-Poll for results:
-bashcurl http://<API_GATEWAY_URL>/api/v1/search/<SEARCH_ID>/results
+```
+React Frontend → Spring Boot REST API → PostgreSQL
 ```
 
----
+**Tech Stack**:
+- Backend: Spring Boot 4.0.2 (Java 21)
+- Frontend: React 19 + TypeScript + Vite
+- Database: PostgreSQL 16
+- Scraping: Jsoup
+- Deployment: Docker + Kubernetes (DOKS)
 
-## Architecture
+## 🚀 Quick Start
 
+### Prerequisites
 
-### Flow:
-1. **User submits search** → React app calls API Gateway
-2. **API Gateway** → Validates JWT, forwards to Spring Boot API in EKS
-3. **Spring Boot API** → Publishes job to SQS, returns `search_id`
-4. **Worker Pods** → Consume SQS messages, scrape sites (Jsoup/Selenium)
-5. **Workers** → Parse listings, calculate scores, store in PostgreSQL
-6. **User polls API** → GET `/search/{id}/results` returns ranked apartments
-7. **Frontend** → Displays results with scores, amenities, and links
+- Java 21+
+- Node.js 20+
+- Docker & Docker Compose
+- PostgreSQL (or use Docker Compose)
 
----
+### Local Development with Docker Compose
 
-## Tech Stack
+```bash
+# Start all services (PostgreSQL + API + Frontend)
+docker-compose up --build
 
-### Frontend
-| Layer        | Technology         |
-|--------------|--------------------|
-| Framework    | React 18           |
-| Language     | TypeScript         |
-| Styling      | Tailwind CSS       |
-| Icons        | Lucide React       |
-| Build Tool   | Vite               |
-| Hosting      | Netlify            |
+# Access the application
+# Frontend: http://localhost
+# API: http://localhost:8080
+# Health check: http://localhost:8080/api/v1/health
+```
 
-### Backend
-| Layer           | Technology              |
-|-----------------|-------------------------|
-| Framework       | Spring Boot 3.2         |
-| Language        | Java 17                 |
-| ORM             | JPA (Hibernate)         |
-| Validation      | Hibernate Validator     |
-| Testing         | JUnit 5, Mockito        |
-| Scraping        | Jsoup, Selenium         |
-| Containerization| Docker                  |
+### Local Development (Manual)
 
-### Infrastructure
-| Service         | Technology              |
-|-----------------|-------------------------|
-| Orchestration   | Amazon EKS (Kubernetes) |
-| Message Queue   | Amazon SQS              |
-| Database        | RDS PostgreSQL          |
-| API Gateway     | AWS API Gateway         |
-| Monitoring      | CloudWatch              |
-| Secrets         | AWS Secrets Manager     |
+**1. Start PostgreSQL**
 
-### DevOps
-| Tool            | Purpose                 |
-|-----------------|-------------------------|
-| CI/CD           | GitHub Actions          |
-| Linting         | ESLint, Checkstyle      |
-| Testing         | Jest, JUnit             |
+```bash
+docker run -d \
+  --name nest-postgres \
+  -e POSTGRES_DB=nest \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=postgres \
+  -p 5432:5432 \
+  postgres:16-alpine
+```
 
----
+**2. Run Spring Boot API**
 
-Contributing
+```bash
+# Build and run
+./mvnw spring-boot:run
 
-Fork the repository
-Create a feature branch (git checkout -b feature/amazing-feature)
-Commit changes (git commit -m 'Add amazing feature')
-Push to branch (git push origin feature/amazing-feature)
-Open a Pull Request
+# Or with custom DB config
+DB_HOST=localhost DB_PORT=5432 DB_NAME=nest DB_USER=postgres DB_PASSWORD=postgres ./mvnw spring-boot:run
+```
 
-Code Standards:
+**3. Run React Frontend**
 
-Backend: Google Java Style Guide + 86% test coverage
-Frontend: ESLint + Prettier + TypeScript strict mode
-Commits: Conventional Commits format
+```bash
+cd src/nestapp-frontend/nestapp
+npm install
+npm run dev
+```
 
+Navigate to http://localhost:5173
 
-License
+## 📊 API Endpoints
+
+### POST `/api/v1/search`
+
+Create a new apartment search.
+
+**Request:**
+```json
+{
+  "priority": "BUDGET",
+  "maxPrice": 2500,
+  "minSqft": 800,
+  "desiredAmenities": ["laundry", "parking"],
+  "maxLeaseMonths": 12
+}
+```
+
+**Response (202 Accepted):**
+```json
+{
+  "searchId": "uuid",
+  "status": "PENDING",
+  "pollingUrl": "/api/v1/search/{uuid}/results",
+  "estimatedWaitSeconds": 120
+}
+```
+
+### GET `/api/v1/search/{searchId}/results`
+
+Poll for search results.
+
+**Response (200 OK - when completed):**
+```json
+{
+  "searchId": "uuid",
+  "status": "COMPLETED",
+  "totalApartmentsFound": 50,
+  "apartments": [
+    {
+      "id": "uuid",
+      "title": "Modern 2BR in Downtown",
+      "price": 2000,
+      "sqft": 950,
+      "bedrooms": 2,
+      "amenities": ["laundry", "parking"],
+      "finalScore": 87.5,
+      "scoreBreakdown": {
+        "priceScore": 25.0,
+        "spaceScore": 22.5,
+        "amenitiesScore": 15.0,
+        "leaseScore": 10.0
+      },
+      "sourceUrl": "https://toronto.craigslist.org/..."
+    }
+  ]
+}
+```
+
+## 🧮 Scoring Algorithm
+
+### Score Components (0-100 total)
+
+- **Price Score** (0-30 pts): Lower price is better
+  - Formula: `(maxPrice - apartmentPrice) / (maxPrice - minPrice) * 30`
+
+- **Space Score** (0-30 pts): More square footage is better
+  - Formula: `(apartmentSqft - minSqft) / (maxSqft - minSqft) * 30`
+
+- **Amenities Score** (0-20 pts):
+  - In-unit laundry: 10 pts
+  - Parking: 5 pts
+  - Gym: 3 pts
+  - Other amenities: 2 pts each (capped at 20)
+
+- **Lease Flexibility Score** (0-20 pts):
+  - Month-to-month: 20 pts
+  - 6-month: 15 pts
+  - 12-month: 10 pts
+  - 12+ months: 5 pts
+
+### Priority Weight Multipliers
+
+| Priority   | Price | Space | Amenities | Lease |
+|------------|-------|-------|-----------|-------|
+| BUDGET     | 1.5x  | 0.8x  | 0.8x      | 0.9x  |
+| SPACE      | 0.8x  | 1.5x  | 0.8x      | 0.9x  |
+| AMENITIES  | 0.9x  | 0.9x  | 1.5x      | 0.9x  |
+| BALANCED   | 1.0x  | 1.0x  | 1.0x      | 1.0x  |
+
+## ☸️ Kubernetes Deployment
+
+See [`k8s/README.md`](k8s/README.md) for detailed deployment instructions to DigitalOcean Kubernetes.
+
+**Quick Deploy:**
+
+```bash
+# Build and push images
+docker build -t yourusername/nest-api:latest .
+docker push yourusername/nest-api:latest
+
+cd src/nestapp-frontend/nestapp
+docker build -t yourusername/nest-frontend:latest .
+docker push yourusername/nest-frontend:latest
+
+# Deploy to K8s
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/postgres-deployment.yaml
+kubectl apply -f k8s/api-deployment.yaml
+kubectl apply -f k8s/frontend-deployment.yaml
+```
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+./mvnw test
+
+# Run with coverage
+./mvnw test jacoco:report
+
+# View coverage report
+open target/site/jacoco/index.html
+```
+
+## 📁 Project Structure
+
+```
+nestapp/
+├── src/
+│   ├── main/java/com/nest/nestapp/
+│   │   ├── controller/         # REST API controllers
+│   │   ├── dto/                # Data Transfer Objects
+│   │   ├── model/              # JPA entities
+│   │   ├── repository/         # JPA repositories
+│   │   └── service/            # Business logic
+│   ├── main/resources/
+│   │   ├── db/migration/       # Flyway SQL migrations
+│   │   └── application.yml     # Spring Boot config
+│   ├── nestapp-frontend/nestapp/
+│   │   └── src/
+│   │       ├── components/     # React components
+│   │       └── App.tsx         # Main React app
+│   └── test/                   # Unit & integration tests
+├── k8s/                        # Kubernetes manifests
+├── Dockerfile                  # Backend Docker image
+├── docker-compose.yml          # Local dev environment
+└── pom.xml                     # Maven dependencies
+```
+
+## 🔧 Environment Variables
+
+| Variable      | Description              | Default       |
+|---------------|--------------------------|---------------|
+| DB_HOST       | PostgreSQL hostname      | localhost     |
+| DB_PORT       | PostgreSQL port          | 5432          |
+| DB_NAME       | Database name            | nest          |
+| DB_USER       | Database username        | postgres      |
+| DB_PASSWORD   | Database password        | postgres      |
+
+## 📝 Development Guidelines
+
+See [`agent/CODESTYLE.md`](agent/CODESTYLE.md) for coding standards.
+
+**Key Principles:**
+- Functions under 80 lines
+- Single responsibility per class/method
+- No more than 4 parameters per function
+- Comprehensive error handling
+- 90%+ test coverage for business logic
+
+## 🎯 Roadmap
+
+- [x] Database schema with Flyway migrations
+- [x] REST API endpoints
+- [x] Scoring algorithm implementation
+- [x] React frontend with Tailwind CSS
+- [x] Docker & Docker Compose setup
+- [x] Kubernetes manifests
+- [ ] Craigslist scraper implementation
+- [ ] RabbitMQ async job processing
+- [ ] Email notifications
+- [ ] User authentication (JWT)
+- [ ] Saved searches
+- [ ] CI/CD pipeline (GitHub Actions)
+
+## 💰 Cost Optimization
+
+**DigitalOcean Kubernetes:**
+- 2-node cluster (2GB RAM/node): $24/month
+- Managed PostgreSQL (smallest tier): $15/month
+- Total: ~$39/month
+
+**Free Tier Alternative:**
+- Use local Kubernetes (minikube/Docker Desktop) for development
+- Deploy to DOKS only for demos/production
+
+## 📄 License
+
 MIT License - see LICENSE for details.
 
-Acknowledgments
+## 👥 Contributing
 
-Apartment hunters everywhere who inspired this project
-Anthropic for Claude (used to refine design patterns)
-Spring Boot & React communities for amazing documentation
+1. Fork the repository
+2. Create a feature branch
+3. Follow CODESTYLE.md guidelines
+4. Write tests for new features
+5. Submit a pull request
 
-
-Contact
-Project Maintainer: Your Name
-Email: your.email@example.com
-Portfolio: https://yourportfolio.com
-LinkedIn: https://linkedin.com/in/yourprofile
+## 📧 Contact
 
 Built with ☕, late nights, and a deep hatred for apartment hunting.
+
+For questions or issues, please open a GitHub issue.

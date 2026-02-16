@@ -24,19 +24,14 @@ Lease Flexibility Score (0-20 pts): Month-to-month > 12-month leases
 Scores are multiplied by priority weights (e.g., Budget Focused = 1.5x price weight).
 
 Async Processing
+
 Searches are queued in SQS, processed asynchronously by EKS workers, and polled via REST API—no blocking, no timeouts.
 
 Transparent Results
+
 Users see exactly why an apartment scored high: match percentage, amenity breakdowns, and comparable listings.
-Fault Tolerance
 
-Scraping failures skip individual listings without killing the entire job
-SQS retries (3 attempts with exponential backoff)
-Dead Letter Queue for persistently failing jobs
-Partial results returned if ≥10 apartments successfully scraped
-
-
-## Quick Start
+## Quick Start to run Locally
 Prerequisites
 
 AWS Account (with EKS, RDS, SQS access)

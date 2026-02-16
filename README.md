@@ -6,15 +6,6 @@ Nest is an intelligent apartment search platform that scrapes multiple rental li
 
 No more juggling 47 browser tabs. No more manual spreadsheets. Just your top matches, ranked 0-100.
 
-## Objective
-Build a production-ready, scalable apartment recommendation system that demonstrates:
-
-Distributed systems architecture (Kubernetes orchestration, message queues, microservices)
-Real-time web scraping at scale with fault tolerance
-Smart ranking algorithms based on user-defined priorities
-Full-stack development with modern cloud infrastructure (AWS EKS, RDS, SQS)
-CI/CD best practices with automated testing and deployment
-
 ## Key Features
 Priority-Based Matching
 Users select one focus area (Budget, Space, Amenities, or Balanced), and apartments are scored using weighted algorithms that reflect what actually matters to them.

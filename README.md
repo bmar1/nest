@@ -1,8 +1,9 @@
 # 🏡 Nest
-### Stop scrolling. Start scoring.
+### Stop scrolling. Find the best home.
 
 ## What It Does
 Nest is an intelligent apartment search platform that scrapes multiple rental listing sites, aggregates results, and ranks apartments based on your priorities—not generic algorithms. Tell us what matters (budget, space, amenities, or a balanced approach), and we deliver scored results in under 3 minutes.
+
 No more juggling 47 browser tabs. No more manual spreadsheets. Just your top matches, ranked 0-100.
 
 ## Objective

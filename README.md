@@ -1,8 +1,8 @@
 # 🏡 Nest
-### Stop scrolling. Find the best home!
+### Stop scrolling. Find the best apartment!
 
 ## What It Does
-Nest is an intelligent apartment search platform that scrapes multiple rental listing sites, aggregates results, and ranks apartments based on your priorities—not generic algorithms. Tell us what matters (budget, space, amenities, or a balanced approach), and we deliver scored results in under 3 minutes.
+Nest is an intelligent apartment search platform that scrapes multiple rental listing sites, aggregates results, and ranks apartments based on your priorities, not generic algorithms. Tell us what matters (budget, space, amenities, or a balanced approach), and we deliver scored results in under 3 minutes.
 
 No more juggling 47 browser tabs. No more manual spreadsheets. Just your top matches, ranked 0-100.
 
@@ -10,10 +10,10 @@ No more juggling 47 browser tabs. No more manual spreadsheets. Just your top mat
 Priority-Based Matching
 Users select one focus area (Budget, Space, Amenities, or Balanced), and apartments are scored using weighted algorithms that reflect what actually matters to them.
 
-Real-Time Scraping
+### Real-Time Scraping
 Kubernetes workers scrape live listings from multiple platforms (Zillow, Apartments.com) simultaneously, pulling fresh data on every search.
 
-Smart Scoring Algorithm
+### Smart Scoring Algorithm
 Each apartment receives a 0-100 score calculated from:
 
 Price Score (0-30 pts): Lower is better, relative to user's max budget
@@ -23,7 +23,7 @@ Lease Flexibility Score (0-20 pts): Month-to-month > 12-month leases
 
 Scores are multiplied by priority weights (e.g., Budget Focused = 1.5x price weight).
 
-Async Processing
+### Async Processing
 
 Searches are queued in SQS, processed asynchronously by EKS workers, and polled via REST API—no blocking, no timeouts.
 

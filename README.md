@@ -27,10 +27,6 @@ Scores are multiplied by priority weights (e.g., Budget Focused = 1.5x price wei
 
 Searches are queued in SQS, processed asynchronously by EKS workers, and polled via REST API—no blocking, no timeouts.
 
-Transparent Results
-
-Users see exactly why an apartment scored high: match percentage, amenity breakdowns, and comparable listings.
-
 ## Quick Start to run Locally
 Prerequisites
 

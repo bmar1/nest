@@ -153,13 +153,6 @@ bashcurl http://<API_GATEWAY_URL>/api/v1/search/<SEARCH_ID>/results
 | Monitoring      | CloudWatch              |
 | Secrets         | AWS Secrets Manager     |
 
-### DevOps
-| Tool            | Purpose                 |
-|-----------------|-------------------------|
-| CI/CD           | GitHub Actions          |
-| Linting         | ESLint, Checkstyle      |
-| Testing         | Jest, JUnit             |
-
 ---
 
 Contributing

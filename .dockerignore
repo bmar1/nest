@@ -1,0 +1,11 @@
+target/
+.git/
+.idea/
+*.iml
+.mvn/wrapper/maven-wrapper.jar
+src/nestapp-frontend/
+k8s/
+*.md
+.dockerignore
+Dockerfile
+docker-compose.yml

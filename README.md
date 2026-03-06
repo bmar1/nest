@@ -2,7 +2,7 @@
 
 **Stop scrolling. Start scoring.**
 
-Nest is an intelligent apartment search platform that scrapes Craigslist Toronto, aggregates listings, and ranks apartments based on your priorities—not generic algorithms. Tell us what matters (Budget, Space, Amenities, or Balanced), and we deliver scored results.
+Nest is an intelligent apartment search platform that scrapes Craigslist Toronto (soon to be other websites), aggregates listings, and ranks apartments based on your priorities—not generic algorithms. Tell us what matters (Budget, Space, Amenities, or Balanced), and we deliver scored results.
 
 ## 📋 Features
 

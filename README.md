@@ -191,19 +191,6 @@ kubectl apply -f k8s/api-deployment.yaml
 kubectl apply -f k8s/frontend-deployment.yaml
 ```
 
-## 🧪 Testing
-
-```bash
-# Run all tests
-./mvnw test
-
-# Run with coverage
-./mvnw test jacoco:report
-
-# View coverage report
-open target/site/jacoco/index.html
-```
-
 ## 📁 Project Structure
 
 ```
@@ -239,42 +226,6 @@ nestapp/
 | DB_USER       | Database username        | postgres      |
 | DB_PASSWORD   | Database password        | postgres      |
 
-## 📝 Development Guidelines
-
-See [`agent/CODESTYLE.md`](agent/CODESTYLE.md) for coding standards.
-
-**Key Principles:**
-- Functions under 80 lines
-- Single responsibility per class/method
-- No more than 4 parameters per function
-- Comprehensive error handling
-- 90%+ test coverage for business logic
-
-## 🎯 Roadmap
-
-- [x] Database schema with Flyway migrations
-- [x] REST API endpoints
-- [x] Scoring algorithm implementation
-- [x] React frontend with Tailwind CSS
-- [x] Docker & Docker Compose setup
-- [x] Kubernetes manifests
-- [ ] Craigslist scraper implementation
-- [ ] RabbitMQ async job processing
-- [ ] Email notifications
-- [ ] User authentication (JWT)
-- [ ] Saved searches
-- [ ] CI/CD pipeline (GitHub Actions)
-
-## 💰 Cost Optimization
-
-**DigitalOcean Kubernetes:**
-- 2-node cluster (2GB RAM/node): $24/month
-- Managed PostgreSQL (smallest tier): $15/month
-- Total: ~$39/month
-
-**Free Tier Alternative:**
-- Use local Kubernetes (minikube/Docker Desktop) for development
-- Deploy to DOKS only for demos/production
 
 ## 📄 License
 

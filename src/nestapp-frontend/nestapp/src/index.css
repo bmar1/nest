@@ -1,27 +1,36 @@
 @import "tailwindcss";
 
-/* shadcn/ui CSS variables for theming */
+/* Nest design tokens (APPDESIGNSKILL) */
+:root {
+  --nest-primary: #2D5016;      /* Forest Green - home stability */
+  --nest-secondary: #87A96B;    /* Sage - calming complement */
+  --nest-cream: #FAF6F1;        /* Warm background */
+  --nest-charcoal: #334155;     /* Softer text hierarchy */
+  --nest-slate: #64748B;
+}
+
+/* shadcn/ui CSS variables - Nest palette override */
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --background: var(--nest-cream);
+  --foreground: var(--nest-charcoal);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: var(--nest-charcoal);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --popover-foreground: var(--nest-charcoal);
+  --primary: var(--nest-primary);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --secondary: var(--nest-secondary);
+  --secondary-foreground: oklch(0.2 0.05 145);
+  --muted: oklch(0.96 0.01 90);
+  --muted-foreground: var(--nest-slate);
+  --accent: oklch(0.94 0.02 90);
+  --accent-foreground: var(--nest-charcoal);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: oklch(0.9 0.02 90);
+  --input: oklch(0.92 0.02 90);
+  --ring: var(--nest-primary);
 }
 
 @theme inline {
@@ -56,4 +65,11 @@ body {
   min-height: 100vh;
   background-color: var(--background);
   color: var(--foreground);
+  font-family: 'Inter', system-ui, sans-serif;
+  line-height: 1.5;
+}
+
+/* Fira Code for prices/numbers */
+.font-mono {
+  font-family: 'Fira Code', ui-monospace, monospace;
 }

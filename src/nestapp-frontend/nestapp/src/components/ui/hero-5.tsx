@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
@@ -46,6 +47,7 @@ interface EthicalHeroProps {
   ctaLabel: string;
   /**
    * The URL the call-to-action button links to.
+   * Use path (e.g. /search) for client-side routing via React Router.
    */
   ctaHref: string;
   /**
@@ -92,7 +94,7 @@ export function EthicalHero({
             className="h-12 px-8 text-base sm:h-14 sm:px-10 sm:text-lg"
             asChild
           >
-            <a href={ctaHref}>{ctaLabel}</a>
+            <Link to={ctaHref}>{ctaLabel}</Link>
           </Button>
         </motion.div>
       </div>
@@ -103,16 +105,18 @@ export function EthicalHero({
         className="mt-16 grid grid-cols-1 gap-6 sm:mt-24 md:grid-cols-3"
       >
         {features.map((feature) => (
-          <motion.a
-            key={feature.id}
-            href={feature.href}
-            aria-label={feature.title}
-            variants={FADE_UP_VARIANTS}
-            whileHover={{ scale: 1.03 }}
-            transition={{ type: 'spring', stiffness: 300 }}
-            className="block"
-          >
-            <Card className="group h-full overflow-hidden rounded-xl shadow-sm transition-shadow duration-300 ease-in-out hover:shadow-md">
+          <motion.div key={feature.id}>
+            <Link
+              to={feature.href}
+              aria-label={feature.title}
+              className="block cursor-pointer"
+            >
+              <motion.div
+                variants={FADE_UP_VARIANTS}
+                whileHover={{ scale: 1.03 }}
+                transition={{ type: 'spring', stiffness: 300 }}
+              >
+                <Card className="group h-full overflow-hidden rounded-xl shadow-sm transition-shadow duration-300 ease-in-out hover:shadow-md">
               {/* Card Image */}
               <div className="overflow-hidden">
                 <img
@@ -134,7 +138,9 @@ export function EthicalHero({
                 </div>
               </div>
             </Card>
-          </motion.a>
+              </motion.div>
+            </Link>
+          </motion.div>
         ))}
       </motion.div>
     </motion.section>

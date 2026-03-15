@@ -116,7 +116,7 @@ export function EthicalHero({
                 whileTap={{ scale: 0.98 }}
                 transition={{ duration: 0.2 }}
               >
-                <Card className="group h-full overflow-hidden rounded-2xl border-2 border-sage-muted/40 bg-white/90 shadow-sm transition-all duration-200 hover:border-primary/30 hover:shadow-xl focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                <Card className="group h-full overflow-hidden rounded-2xl border-2 border-sage-muted/40 bg-white/90 shadow-sm transition-all duration-200 hover:border-primary/30 hover:shadow-xl focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 dark:border-border dark:bg-surface/90">
               {/* Card Image */}
               <div className="overflow-hidden">
                 <img
@@ -132,7 +132,7 @@ export function EthicalHero({
                   <h3 className="text-lg font-semibold text-foreground">
                     {feature.title}
                   </h3>
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/50 transition-colors duration-300 group-hover:bg-muted">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/50 transition-colors duration-300 group-hover:bg-muted dark:bg-surface-elevated dark:group-hover:bg-surface-overlay">
                     <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform duration-300 group-hover:translate-x-1" />
                   </div>
                 </div>

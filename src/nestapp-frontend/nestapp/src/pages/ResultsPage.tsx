@@ -228,7 +228,7 @@ function ScoreBar({ label, score, icon: Icon, delay = 0 }: {
         </span>
         <span className="font-mono font-semibold text-foreground">{score}</span>
       </div>
-      <div className="h-2 rounded-full bg-sage-muted/20">
+      <div className="h-2 rounded-full bg-sage-muted/20 dark:bg-surface-overlay">
         <motion.div
           initial={{ width: 0 }}
           animate={isInView ? { width: `${score}%` } : { width: 0 }}
@@ -296,13 +296,13 @@ function ApartmentDetailModal({ apartment, onClose }: { apartment: Apartment; on
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-cream shadow-2xl"
+          className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-cream shadow-2xl dark:bg-background"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/90 shadow-md backdrop-blur-sm transition-all hover:bg-white hover:shadow-lg"
+            className="absolute top-4 right-4 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/90 shadow-md backdrop-blur-sm transition-all hover:bg-white hover:shadow-lg dark:bg-surface/90 dark:hover:bg-surface-elevated"
             aria-label="Close details"
           >
             <X className="h-5 w-5 text-charcoal" />
@@ -339,28 +339,28 @@ function ApartmentDetailModal({ apartment, onClose }: { apartment: Apartment; on
           <div className="p-6 sm:p-8">
             {/* Stats row */}
             <div className="flex flex-wrap gap-4">
-              <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm">
+              <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm dark:bg-surface">
                 <DollarSign className="h-4 w-4 text-primary" aria-hidden />
                 <div>
                   <p className="font-mono text-xl font-bold text-primary">${apartment.price.toLocaleString()}</p>
                   <p className="text-xs text-muted-foreground">/month</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm">
+              <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm dark:bg-surface">
                 <Maximize2 className="h-4 w-4 text-primary" aria-hidden />
                 <div>
                   <p className="font-mono text-xl font-bold text-foreground">{apartment.sqft.toLocaleString()}</p>
                   <p className="text-xs text-muted-foreground">sq ft</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm">
+              <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm dark:bg-surface">
                 <Bed className="h-4 w-4 text-primary" aria-hidden />
                 <div>
                   <p className="font-mono text-xl font-bold text-foreground">{apartment.bedrooms}bd / {apartment.bathrooms}ba</p>
                   <p className="text-xs text-muted-foreground">bedrooms</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm">
+              <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm dark:bg-surface">
                 <Calendar className="h-4 w-4 text-primary" aria-hidden />
                 <div>
                   <p className="font-mono text-xl font-bold text-foreground">{apartment.leaseTermMonths}</p>
@@ -391,7 +391,7 @@ function ApartmentDetailModal({ apartment, onClose }: { apartment: Apartment; on
                 <BarChart3 className="h-5 w-5 text-primary" aria-hidden />
                 Score Breakdown
               </h3>
-              <Card className="mt-3 border-sage-muted/30 bg-white/70 p-5">
+              <Card className="mt-3 border-sage-muted/30 bg-white/70 p-5 dark:border-border dark:bg-surface/70">
                 <div className="mb-4 flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Overall Match</span>
                   <span className="font-mono text-3xl font-bold text-primary">
@@ -469,8 +469,8 @@ function RankingCard({ apartment, onViewDetails }: {
       className={cn(
         'group relative overflow-hidden rounded-2xl border-2 transition-all duration-300',
         isFirst
-          ? 'cursor-pointer border-primary/40 bg-white shadow-xl shadow-primary/10 hover:border-primary/60 hover:shadow-2xl hover:shadow-primary/15'
-          : 'cursor-default border-sage-muted/30 bg-white shadow-sm hover:border-sage-muted/50 hover:shadow-md'
+          ? 'cursor-pointer border-primary/40 bg-white shadow-xl shadow-primary/10 hover:border-primary/60 hover:shadow-2xl hover:shadow-primary/15 dark:bg-surface'
+          : 'cursor-default border-sage-muted/30 bg-white shadow-sm hover:border-sage-muted/50 hover:shadow-md dark:border-border dark:bg-surface'
       )}
       onClick={isFirst ? onViewDetails : undefined}
     >
@@ -502,7 +502,7 @@ function RankingCard({ apartment, onViewDetails }: {
             'absolute top-3 left-3 flex h-10 w-10 items-center justify-center rounded-xl font-mono text-sm font-bold shadow-lg',
             isFirst
               ? 'bg-primary text-white'
-              : 'bg-white/95 text-charcoal backdrop-blur-sm'
+              : 'bg-white/95 text-charcoal backdrop-blur-sm dark:bg-surface-elevated dark:text-foreground'
           )}>
             #{apartment.rank}
           </div>
@@ -584,7 +584,7 @@ function RankingCard({ apartment, onViewDetails }: {
                   <span>{label}</span>
                   <span className="font-mono font-medium">{score}</span>
                 </div>
-                <div className="mt-1 h-1.5 rounded-full bg-sage-muted/20">
+                <div className="mt-1 h-1.5 rounded-full bg-sage-muted/20 dark:bg-surface-overlay">
                   <div
                     className={cn(
                       'h-full rounded-full transition-all duration-500',
@@ -604,7 +604,7 @@ function RankingCard({ apartment, onViewDetails }: {
               return (
                 <span
                   key={a}
-                  className="inline-flex items-center gap-1 rounded-md bg-sage-muted/15 px-2 py-1 text-[11px] font-medium text-muted-foreground"
+                  className="inline-flex items-center gap-1 rounded-md bg-sage-muted/15 px-2 py-1 text-[11px] font-medium text-muted-foreground dark:bg-surface-elevated"
                 >
                   <Icon className="h-3 w-3" aria-hidden />
                   {a}
@@ -650,9 +650,9 @@ export function ResultsPage() {
   })
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-cream via-cream to-sage-muted/10">
+    <div className="min-h-screen bg-gradient-to-b from-cream via-cream to-sage-muted/10 dark-gradient-down">
       {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-sage-muted/30 bg-cream/95 backdrop-blur supports-[backdrop-filter]:bg-cream/80">
+      <header className="sticky top-0 z-30 border-b border-sage-muted/30 bg-cream/95 backdrop-blur supports-[backdrop-filter]:bg-cream/80 dark:border-border dark:bg-surface/95 dark:supports-[backdrop-filter]:bg-surface/80">
         <div className="container mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
           <Link
             to="/search"
@@ -750,7 +750,7 @@ export function ResultsPage() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mt-12 rounded-2xl border border-sage-muted/30 bg-white/60 p-8 text-center backdrop-blur-sm"
+          className="mt-12 rounded-2xl border border-sage-muted/30 bg-white/60 p-8 text-center backdrop-blur-sm dark:border-border dark:bg-surface/60"
         >
           <p className="text-lg font-semibold text-foreground">
             Not quite right?

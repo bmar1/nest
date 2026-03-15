@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { AnimatedCounter } from '@/components/ui/animated-counter'
 import { ScrollIndicator } from '@/components/ui/scroll-indicator'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import {
   Home,
   ChevronRight,
@@ -203,8 +204,8 @@ function FloatingCard() {
       transition={{ delay: 0.8, duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
       className="animate-float"
     >
-      <div className="relative mx-auto w-full max-w-sm overflow-hidden rounded-2xl border-2 border-sage-muted/50 bg-white/90 shadow-2xl backdrop-blur-md">
-        <div className="relative h-44 overflow-hidden">
+      <div className="relative mx-auto w-full max-w-xl overflow-hidden rounded-2xl border-2 border-sage-muted/50 bg-white/90 shadow-2xl backdrop-blur-md dark:border-border dark:bg-surface/90">
+        <div className="relative h-72 overflow-hidden">
           <img
             src="/hero-apartment.png"
             alt="Beautiful modern apartment with warm natural lighting"
@@ -214,7 +215,7 @@ function FloatingCard() {
             98% Match
           </div>
         </div>
-        <div className="p-5">
+        <div className="p-7">
           <div className="flex items-center justify-between">
             <h4 className="font-semibold text-foreground">Sunlit Studio Downtown</h4>
             <span className="font-mono text-lg font-bold text-primary">$1,850</span>
@@ -334,7 +335,7 @@ function ScrollRevealJourney() {
               scale: activeIndex === 0 ? 1 : 0.9,
             }}
             transition={{ type: 'spring', damping: 20, stiffness: 200 }}
-            className="absolute h-40 w-56 rounded-xl border border-red-200/50 bg-white/90 p-3 shadow-lg"
+            className="absolute h-40 w-56 rounded-xl border border-red-200/50 bg-white/90 p-3 shadow-lg dark:border-red-500/20 dark:bg-surface/90"
           >
             <div className="h-2 w-16 rounded-full bg-red-200/60" />
             <div className="mt-2 h-2 w-24 rounded-full bg-slate-200" />
@@ -355,9 +356,9 @@ function ScrollRevealJourney() {
         <motion.div
           animate={{ scale: activeIndex === 1 ? 1 : 0.85, opacity: activeIndex === 1 ? 1 : 0.5 }}
           transition={{ type: 'spring', damping: 20 }}
-          className="h-64 w-full max-w-xs rounded-2xl border-2 border-primary/30 bg-white/95 p-5 shadow-xl"
+          className="h-64 w-full max-w-xs rounded-2xl border-2 border-primary/30 bg-white/95 p-5 shadow-xl dark:bg-surface/95"
         >
-          <div className="flex items-center gap-2 rounded-xl bg-cream px-4 py-3">
+          <div className="flex items-center gap-2 rounded-xl bg-cream px-4 py-3 dark:bg-surface-elevated">
             <Search className="h-4 w-4 text-primary" />
             <div className="h-2 w-32 rounded-full bg-primary/20" />
           </div>
@@ -398,7 +399,7 @@ function ScrollRevealJourney() {
                 scale: activeIndex === 2 ? 1 : 0.95,
               }}
               transition={{ delay: i * 0.12, type: 'spring', damping: 20 }}
-              className="flex items-center justify-between rounded-xl border border-sage-muted/50 bg-white/95 px-4 py-3 shadow-sm"
+              className="flex items-center justify-between rounded-xl border border-sage-muted/50 bg-white/95 px-4 py-3 shadow-sm dark:border-border dark:bg-surface/95"
             >
               <div className="flex items-center gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
@@ -447,7 +448,7 @@ function ScrollRevealJourney() {
   }
 
   return (
-    <section className="border-t border-sage-muted/30 bg-gradient-to-b from-white to-cream">
+    <section className="border-t border-sage-muted/30 bg-gradient-to-b from-white to-cream dark-gradient-down dark:border-border">
       <div ref={containerRef} className="relative" style={{ height: `${journeyStages.length * 100}vh` }}>
         <div className="sticky top-0 flex h-screen items-center overflow-hidden">
           <div className="container mx-auto max-w-6xl px-4">
@@ -461,7 +462,7 @@ function ScrollRevealJourney() {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.4 }}
-                    className="h-full w-full rounded-3xl border border-sage-muted/30 bg-cream/60 p-8 backdrop-blur-sm"
+                    className="h-full w-full rounded-3xl border border-sage-muted/30 bg-cream/60 p-8 backdrop-blur-sm dark:border-border dark:bg-surface/60"
                   >
                     {stageVisuals[activeStage.visual]}
                   </motion.div>
@@ -561,45 +562,45 @@ function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm"
+            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm dark:bg-black/50"
           />
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed top-20 right-4 left-4 z-50 rounded-2xl border border-sage-muted/50 bg-cream/98 p-6 shadow-xl backdrop-blur-md sm:left-auto sm:w-72"
+            className="fixed top-20 right-4 left-4 z-50 rounded-2xl border border-sage-muted/50 bg-cream/98 p-6 shadow-xl backdrop-blur-md sm:left-auto sm:w-72 dark:border-border dark:bg-surface/98"
           >
             <nav className="flex flex-col gap-3">
               <a
                 href="#problem"
                 onClick={onClose}
-                className="rounded-xl px-4 py-3 text-base font-medium text-foreground transition-colors hover:bg-sage-muted/20"
+                className="rounded-xl px-4 py-3 text-base font-medium text-foreground transition-colors hover:bg-sage-muted/20 dark:hover:bg-surface-elevated"
               >
                 The Problem
               </a>
               <a
                 href="#features"
                 onClick={onClose}
-                className="rounded-xl px-4 py-3 text-base font-medium text-foreground transition-colors hover:bg-sage-muted/20"
+                className="rounded-xl px-4 py-3 text-base font-medium text-foreground transition-colors hover:bg-sage-muted/20 dark:hover:bg-surface-elevated"
               >
                 Features
               </a>
               <a
                 href="#how-it-works"
                 onClick={onClose}
-                className="rounded-xl px-4 py-3 text-base font-medium text-foreground transition-colors hover:bg-sage-muted/20"
+                className="rounded-xl px-4 py-3 text-base font-medium text-foreground transition-colors hover:bg-sage-muted/20 dark:hover:bg-surface-elevated"
               >
                 How It Works
               </a>
               <a
                 href="#testimonials"
                 onClick={onClose}
-                className="rounded-xl px-4 py-3 text-base font-medium text-foreground transition-colors hover:bg-sage-muted/20"
+                className="rounded-xl px-4 py-3 text-base font-medium text-foreground transition-colors hover:bg-sage-muted/20 dark:hover:bg-surface-elevated"
               >
                 Testimonials
               </a>
-              <hr className="border-sage-muted/30" />
+              <hr className="border-sage-muted/30 dark:border-border" />
               <Button size="lg" asChild className="w-full">
                 <Link to="/search" onClick={onClose}>
                   Start search
@@ -629,9 +630,9 @@ export function LandingPage() {
   const heroY = useTransform(scrollYProgress, [0, 1], [0, 80])
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-screen bg-cream dark-mesh">
       {/* ─── Floating Navbar ─────────────────── */}
-      <nav className="sticky top-4 left-4 right-4 z-30 mx-auto max-w-6xl rounded-2xl border border-sage-muted/50 bg-cream/90 px-5 py-3 shadow-sm backdrop-blur-xl">
+      <nav className="sticky top-4 left-4 right-4 z-30 mx-auto max-w-6xl rounded-2xl border border-sage-muted/50 bg-cream/90 px-5 py-3 shadow-sm backdrop-blur-xl dark:border-border dark:bg-surface/90">
         <div className="flex h-12 items-center justify-between">
           <Link
             to="/"
@@ -653,6 +654,7 @@ export function LandingPage() {
             <a href="#how-it-works" className="text-sm font-medium text-muted-foreground transition-colors duration-200 hover:text-foreground">
               How It Works
             </a>
+            <ThemeToggle />
             <Button size="sm" className="animate-pulse-glow" asChild>
               <Link to="/search">
                 Start search
@@ -661,15 +663,18 @@ export function LandingPage() {
             </Button>
           </div>
 
-          {/* Mobile hamburger */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-foreground transition-colors hover:bg-sage-muted/20 md:hidden"
-            aria-label="Toggle menu"
-            aria-expanded={mobileMenuOpen}
-          >
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+          {/* Mobile: theme + hamburger */}
+          <div className="flex items-center gap-2 md:hidden">
+            <ThemeToggle />
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-foreground transition-colors hover:bg-sage-muted/20 dark:hover:bg-surface-elevated"
+              aria-label="Toggle menu"
+              aria-expanded={mobileMenuOpen}
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -678,7 +683,7 @@ export function LandingPage() {
       {/* ─── HERO ────────────────────────────── */}
       <section ref={heroRef} className="relative min-h-screen overflow-hidden pt-16 sm:pt-20">
         {/* Warm gradient overlay */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-cream via-cream/90 to-sage-muted/20 animate-gradient" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-cream via-cream/90 to-sage-muted/20 animate-gradient dark:from-transparent dark:via-transparent dark:to-transparent" />
 
         <motion.div
           style={{ opacity: heroOpacity, y: heroY }}
@@ -760,7 +765,7 @@ export function LandingPage() {
                     transition={{ delay: 1.8 + i * 0.1, duration: 0.4 }}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.97 }}
-                    className="flex cursor-default flex-col items-center rounded-2xl border border-sage-muted/40 bg-white/60 px-6 py-4 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-primary/20 hover:shadow-md"
+                    className="flex cursor-default flex-col items-center rounded-2xl border border-sage-muted/40 bg-white/60 px-6 py-4 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-primary/20 hover:shadow-md dark:border-border dark:bg-surface/60"
                   >
                     <span className="font-mono text-2xl font-bold text-primary">
                       <AnimatedCounter value={stat.value} suffix={stat.suffix} />
@@ -789,7 +794,7 @@ export function LandingPage() {
       {/* ─── THE PROBLEM ─────────────────────── */}
       <section
         id="problem"
-        className="relative overflow-hidden border-t border-sage-muted/30 bg-[#1e293b] py-24 sm:py-32"
+        className="relative overflow-hidden border-t border-sage-muted/30 bg-[#1e293b] py-24 sm:py-32 dark:bg-surface"
       >
         {/* Subtle grid pattern */}
         <div
@@ -858,7 +863,7 @@ export function LandingPage() {
                     viewport={{ once: true }}
                     transition={{ delay: i * 0.1, duration: 0.4 }}
                     whileHover={{ x: 4 }}
-                    className="group flex cursor-default items-start gap-4 rounded-xl border border-white/5 bg-white/5 p-4 backdrop-blur-sm transition-all duration-200 hover:border-white/10 hover:bg-white/[0.08]"
+                    className="group flex cursor-default items-start gap-4 rounded-xl border border-white/5 bg-white/5 p-4 backdrop-blur-sm transition-all duration-200 hover:border-white/10 hover:bg-white/[0.08] dark:border-border/30 dark:bg-surface-elevated/30 dark:hover:bg-surface-elevated/50"
                   >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-500/10">
                       <item.icon className="h-5 w-5 text-red-400" aria-hidden />
@@ -898,7 +903,7 @@ export function LandingPage() {
       {/* ─── FEATURES BENTO GRID ─────────────── */}
       <section
         id="features"
-        className="border-t border-sage-muted/30 bg-gradient-to-b from-cream to-white py-24 sm:py-32"
+        className="border-t border-sage-muted/30 bg-gradient-to-b from-cream to-white py-24 sm:py-32 dark-gradient-down dark:border-border"
       >
         <div className="container mx-auto max-w-6xl px-4">
           <motion.div
@@ -932,7 +937,7 @@ export function LandingPage() {
               >
                 <Card
                   className={cn(
-                    'group h-full cursor-default border-2 border-sage-muted/40 bg-white/80 p-8 shadow-sm backdrop-blur-sm transition-all duration-300 hover:border-primary/20 hover:shadow-xl',
+                    'group h-full cursor-default border-2 border-sage-muted/40 bg-white/80 p-8 shadow-sm backdrop-blur-sm transition-all duration-300 hover:border-primary/20 hover:shadow-xl dark:border-border dark:bg-surface/80',
                     i === 0 && 'sm:col-span-2 lg:col-span-1'
                   )}
                 >
@@ -977,7 +982,7 @@ export function LandingPage() {
       {/* ─── HOW IT WORKS ────────────────────── */}
       <section
         id="how-it-works"
-        className="border-t border-sage-muted/30 bg-white py-24 sm:py-32"
+        className="border-t border-sage-muted/30 bg-white py-24 sm:py-32 dark-ambient dark:border-border"
       >
         <div className="container mx-auto max-w-6xl px-4">
           <motion.div
@@ -1011,7 +1016,7 @@ export function LandingPage() {
                   {/* Number circle */}
                   <motion.div
                     whileHover={{ scale: 1.1, boxShadow: '0 8px 30px rgba(45,80,22,0.15)' }}
-                    className="relative z-10 flex h-16 w-16 items-center justify-center rounded-full border-2 border-primary bg-cream shadow-md transition-all duration-300"
+                    className="relative z-10 flex h-16 w-16 items-center justify-center rounded-full border-2 border-primary bg-cream shadow-md transition-all duration-300 dark:bg-surface"
                   >
                     <span className="font-mono text-lg font-bold text-primary">{step.number}</span>
                   </motion.div>
@@ -1054,7 +1059,7 @@ export function LandingPage() {
       <ScrollRevealJourney />
 
       {/* ─── TRUST & TRANSPARENCY ────────────── */}
-      <section className="border-t border-sage-muted/30 bg-cream-dark/40 py-24 sm:py-32">
+      <section className="border-t border-sage-muted/30 bg-cream-dark/40 py-24 sm:py-32 dark-mesh dark:border-border">
         <div className="container mx-auto max-w-6xl px-4">
           <div className="grid items-center gap-16 lg:grid-cols-2">
             <motion.div
@@ -1101,7 +1106,7 @@ export function LandingPage() {
               transition={{ duration: 0.5 }}
             >
               {/* Apartment score card preview */}
-              <div className="overflow-hidden rounded-2xl border-2 border-sage-muted/50 bg-white/80 p-6 shadow-xl backdrop-blur-sm sm:p-8">
+              <div className="overflow-hidden rounded-2xl border-2 border-sage-muted/50 bg-white/80 p-6 shadow-xl backdrop-blur-sm sm:p-8 dark:border-border dark:bg-surface/80">
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="text-lg font-semibold text-foreground">Maple Street Gallery</h4>
@@ -1148,7 +1153,7 @@ export function LandingPage() {
       {/* ─── TESTIMONIALS ────────────────────── */}
       <section
         id="testimonials"
-        className="border-t border-sage-muted/30 bg-white py-24 sm:py-32"
+        className="border-t border-sage-muted/30 bg-white py-24 sm:py-32 dark-gradient-down dark:border-border"
       >
         <div className="container mx-auto max-w-6xl px-4">
           <motion.div
@@ -1175,7 +1180,7 @@ export function LandingPage() {
                 transition={{ duration: 0.4, delay: i * 0.1 }}
                 whileHover={{ y: -4 }}
               >
-                <Card className="group h-full cursor-default border-sage-muted/40 bg-cream/40 p-8 transition-all duration-300 hover:border-primary/15 hover:shadow-lg">
+                <Card className="group h-full cursor-default border-sage-muted/40 bg-cream/40 p-8 transition-all duration-300 hover:border-primary/15 hover:shadow-lg dark:border-border dark:bg-surface/40">
                   <Quote
                     className="h-10 w-10 text-sage-muted transition-colors duration-300 group-hover:text-primary/30"
                     aria-hidden
@@ -1254,7 +1259,7 @@ export function LandingPage() {
       </section>
 
       {/* ─── FOOTER ──────────────────────────── */}
-      <footer className="border-t border-sage-muted/30 bg-cream py-10">
+      <footer className="border-t border-sage-muted/30 bg-cream py-10 dark:border-border dark:bg-background">
         <div className="container mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 text-sm text-muted-foreground sm:flex-row">
           <div className="flex items-center gap-2">
             <Home className="h-4 w-4 text-primary" aria-hidden />

@@ -10,7 +10,7 @@
   --nest-cream: #FAF6F1;        /* Warm background */
   --nest-cream-dark: #f0e9e0;
   --nest-charcoal: #334155;     /* Softer text hierarchy */
-  --nest-slate: #64748B;
+  --nest-slate: #7a8599;
   --nest-warm: #b8956b;         /* Warm accent - inviting */
   --nest-warm-muted: #d4c4a8;   /* Soft warm for backgrounds */
 }
@@ -49,6 +49,37 @@ html {
   --ring: var(--nest-primary);
 }
 
+/* ─── Dark Mode ─────────────────────────── */
+.dark {
+  --nest-cream: #0c0e14;
+  --nest-cream-dark: #12151e;
+  --nest-charcoal: #eaebef;
+  --nest-slate: #9ea2b5;
+  --nest-sage-muted: #252e24;
+  --nest-sage-light: #3d5a2f;
+  --nest-warm-muted: #2a2520;
+
+  --background: #0c0e14;
+  --foreground: #eaebef;
+  --card: #161923;
+  --card-foreground: #eaebef;
+  --popover: #161923;
+  --popover-foreground: #eaebef;
+  --primary: #4a8a2a;
+  --primary-foreground: #f0f0f0;
+  --secondary: #3d5a2f;
+  --secondary-foreground: #c5d9b0;
+  --muted: #1a1d28;
+  --muted-foreground: #9ea2b5;
+  --accent: #1e2130;
+  --accent-foreground: #eaebef;
+  --destructive: #e04848;
+  --destructive-foreground: #f0f0f0;
+  --border: #252840;
+  --input: #2e3248;
+  --ring: #4a8a2a;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -76,6 +107,12 @@ html {
   --color-cream-dark: var(--nest-cream-dark);
   --color-warm: var(--nest-warm);
   --color-warm-muted: var(--nest-warm-muted);
+
+  /* Dark mode surface tokens */
+  --color-surface: #161923;
+  --color-surface-elevated: #1e2130;
+  --color-surface-overlay: #2a2d3a;
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -90,7 +127,35 @@ body {
   color: var(--foreground);
   font-family: 'Inter', system-ui, sans-serif;
   line-height: 1.5;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
+
+/* Dark mode ambient background gradients */
+.dark body,
+.dark .dark-ambient {
+  background: linear-gradient(145deg, #0c0e14 0%, #111320 30%, #0e1018 60%, #0c0e14 100%);
+}
+
+.dark-mesh {
+  background: var(--background);
+}
+
+.dark .dark-mesh {
+  background:
+    radial-gradient(ellipse at 15% 10%, rgba(30, 40, 65, 0.4) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 20%, rgba(25, 35, 50, 0.3) 0%, transparent 40%),
+    radial-gradient(ellipse at 50% 80%, rgba(20, 25, 40, 0.35) 0%, transparent 50%),
+    linear-gradient(180deg, #0c0e14 0%, #10131e 50%, #0c0e14 100%);
+}
+
+.dark-gradient-down {
+  background: var(--background);
+}
+
+.dark .dark-gradient-down {
+  background: linear-gradient(180deg, #0c0e14 0%, #111525 40%, #151a2a 70%, #0e1018 100%);
+}
+
 
 /* Fira Code for prices/numbers */
 .font-mono {

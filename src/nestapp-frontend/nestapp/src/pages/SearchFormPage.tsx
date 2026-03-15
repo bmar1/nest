@@ -182,9 +182,9 @@ export function SearchFormPage() {
   const selectedPriority = priorities.find((p) => p.value === formData.priority)
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-cream via-cream to-sage-muted/20">
+    <div className="min-h-screen bg-gradient-to-b from-cream via-cream to-sage-muted/20 dark-mesh">
       {/* Header */}
-      <header className="sticky top-0 z-10 border-b border-sage-muted/40 bg-cream/95 backdrop-blur supports-[backdrop-filter]:bg-cream/80">
+      <header className="sticky top-0 z-10 border-b border-sage-muted/40 bg-cream/95 backdrop-blur supports-[backdrop-filter]:bg-cream/80 dark:border-border dark:bg-surface/95 dark:supports-[backdrop-filter]:bg-surface/80">
         <div className="container mx-auto flex h-14 max-w-2xl items-center justify-between px-4">
           <Link
             to="/"
@@ -246,7 +246,7 @@ export function SearchFormPage() {
                     'group relative flex cursor-pointer flex-col items-center gap-2 rounded-2xl border-2 px-4 py-5 text-center transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                     isActive
                       ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10'
-                      : 'border-sage-muted/40 bg-white/80 hover:border-primary/30 hover:bg-white hover:shadow-md'
+                      : 'border-sage-muted/40 bg-white/80 hover:border-primary/30 hover:bg-white hover:shadow-md dark:border-border dark:bg-surface/80 dark:hover:bg-surface-elevated'
                   )}
                   aria-pressed={isActive}
                   aria-label={`Select ${p.label}`}
@@ -299,7 +299,7 @@ export function SearchFormPage() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.3 }}
           >
-            <Card className="mt-6 border-sage-muted/30 bg-white/60 p-4 backdrop-blur-sm">
+            <Card className="mt-6 border-sage-muted/30 bg-white/60 p-4 backdrop-blur-sm dark:border-border dark:bg-surface/60">
               <div className="flex items-start gap-3">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                   <Zap className="h-4 w-4 text-primary" aria-hidden />
@@ -309,13 +309,13 @@ export function SearchFormPage() {
                     Smart defaults for &ldquo;{selectedPriority?.label}&rdquo;
                   </p>
                   <div className="mt-1.5 flex flex-wrap gap-2">
-                    <span className="inline-flex items-center rounded-md bg-cream px-2.5 py-0.5 font-mono text-xs font-medium text-foreground">
+                    <span className="inline-flex items-center rounded-md bg-cream px-2.5 py-0.5 font-mono text-xs font-medium text-foreground dark:bg-surface-elevated">
                       ≤ ${formData.maxPrice.toLocaleString()}/mo
                     </span>
-                    <span className="inline-flex items-center rounded-md bg-cream px-2.5 py-0.5 font-mono text-xs font-medium text-foreground">
+                    <span className="inline-flex items-center rounded-md bg-cream px-2.5 py-0.5 font-mono text-xs font-medium text-foreground dark:bg-surface-elevated">
                       ≥ {formData.minSqft.toLocaleString()} sq ft
                     </span>
-                    <span className="inline-flex items-center rounded-md bg-cream px-2.5 py-0.5 font-mono text-xs font-medium text-foreground">
+                    <span className="inline-flex items-center rounded-md bg-cream px-2.5 py-0.5 font-mono text-xs font-medium text-foreground dark:bg-surface-elevated">
                       {formData.maxLeaseMonths} mo lease
                     </span>
                     {formData.desiredAmenities.length > 0 && (
@@ -339,7 +339,7 @@ export function SearchFormPage() {
             <button
               type="button"
               onClick={() => setShowFineTune(!showFineTune)}
-              className="mx-auto flex cursor-pointer items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:bg-sage-muted/20 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="mx-auto flex cursor-pointer items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:bg-sage-muted/20 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:hover:bg-surface-elevated"
               aria-expanded={showFineTune}
             >
               <SlidersHorizontal className="h-4 w-4" aria-hidden />
@@ -364,7 +364,7 @@ export function SearchFormPage() {
               >
                 <div className="space-y-6 pt-4">
                   {/* Budget slider */}
-                  <Card className="border-sage-muted/30 bg-white/60 p-5 backdrop-blur-sm">
+                  <Card className="border-sage-muted/30 bg-white/60 p-5 backdrop-blur-sm dark:border-border dark:bg-surface/60">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <DollarSign className="h-4 w-4 text-primary" aria-hidden />
@@ -386,7 +386,7 @@ export function SearchFormPage() {
                             'cursor-pointer rounded-lg px-2.5 py-1 font-mono text-xs transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                             formData.maxPrice === price
                               ? 'bg-primary text-white shadow-sm'
-                              : 'bg-sage-muted/20 text-muted-foreground hover:bg-sage-muted/40'
+                              : 'bg-sage-muted/20 text-muted-foreground hover:bg-sage-muted/40 dark:bg-surface-elevated dark:hover:bg-surface-overlay'
                           )}
                         >
                           ${price >= 1000 ? `${(price / 1000).toFixed(price % 1000 ? 1 : 0)}k` : price}
@@ -404,7 +404,7 @@ export function SearchFormPage() {
                   </Card>
 
                   {/* Space slider */}
-                  <Card className="border-sage-muted/30 bg-white/60 p-5 backdrop-blur-sm">
+                  <Card className="border-sage-muted/30 bg-white/60 p-5 backdrop-blur-sm dark:border-border dark:bg-surface/60">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Layout className="h-4 w-4 text-primary" aria-hidden />
@@ -426,7 +426,7 @@ export function SearchFormPage() {
                   </Card>
 
                   {/* Lease - tap chips instead of number input */}
-                  <Card className="border-sage-muted/30 bg-white/60 p-5 backdrop-blur-sm">
+                  <Card className="border-sage-muted/30 bg-white/60 p-5 backdrop-blur-sm dark:border-border dark:bg-surface/60">
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-primary" aria-hidden />
                       <span className="text-sm font-medium text-foreground">Max lease</span>
@@ -441,7 +441,7 @@ export function SearchFormPage() {
                             'flex-1 cursor-pointer rounded-xl py-3 text-center text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                             formData.maxLeaseMonths === opt.value
                               ? 'bg-primary text-white shadow-md'
-                              : 'bg-sage-muted/20 text-muted-foreground hover:bg-sage-muted/40'
+                              : 'bg-sage-muted/20 text-muted-foreground hover:bg-sage-muted/40 dark:bg-surface-elevated dark:hover:bg-surface-overlay'
                           )}
                         >
                           {opt.label}
@@ -451,7 +451,7 @@ export function SearchFormPage() {
                   </Card>
 
                   {/* Amenities - compact inline chips */}
-                  <Card className="border-sage-muted/30 bg-white/60 p-5 backdrop-blur-sm">
+                  <Card className="border-sage-muted/30 bg-white/60 p-5 backdrop-blur-sm dark:border-border dark:bg-surface/60">
                     <div className="flex items-center gap-2">
                       <Sparkles className="h-4 w-4 text-primary" aria-hidden />
                       <span className="text-sm font-medium text-foreground">Must-have amenities</span>
@@ -469,7 +469,7 @@ export function SearchFormPage() {
                               'inline-flex cursor-pointer items-center gap-2 rounded-full border-2 px-4 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                               isSelected
                                 ? 'border-primary bg-primary/5 text-primary'
-                                : 'border-sage-muted/30 bg-white text-muted-foreground hover:border-primary/30'
+                                : 'border-sage-muted/30 bg-white text-muted-foreground hover:border-primary/30 dark:border-border dark:bg-surface'
                             )}
                             aria-pressed={isSelected}
                             aria-label={`Toggle ${a.label}`}

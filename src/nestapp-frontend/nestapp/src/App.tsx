@@ -11,6 +11,7 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/search" element={<SearchFormPage />} />
         <Route path="/search/:searchId/results" element={<ResultsPage />} />
+        <Route path="/results" element={<ResultsPage />} />
       </Routes>
     </BrowserRouter>
   )

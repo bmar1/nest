@@ -109,14 +109,14 @@ export function EthicalHero({
             <Link
               to={feature.href}
               aria-label={feature.title}
-              className="block cursor-pointer"
+              className="block cursor-pointer rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               <motion.div
                 variants={FADE_UP_VARIANTS}
-                whileHover={{ scale: 1.03 }}
-                transition={{ type: 'spring', stiffness: 300 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ duration: 0.2 }}
               >
-                <Card className="group h-full overflow-hidden rounded-xl shadow-sm transition-shadow duration-300 ease-in-out hover:shadow-md">
+                <Card className="group h-full overflow-hidden rounded-2xl border-2 border-sage-muted/40 bg-white/90 shadow-sm transition-all duration-200 hover:border-primary/30 hover:shadow-xl focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
               {/* Card Image */}
               <div className="overflow-hidden">
                 <img

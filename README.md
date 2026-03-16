@@ -1,6 +1,6 @@
 # 🏡 Nest
 
-**Stop scrolling. Start scoring.**
+**Find your dream home cheaper & faster and without the hassle.**
 
 Nest is an intelligent apartment search platform that scrapes Craigslist Toronto (soon to be other websites), aggregates listings, and ranks apartments based on your priorities—not generic algorithms. Tell us what matters (Budget, Space, Amenities, or Balanced), and we deliver scored results.
 
@@ -189,19 +189,6 @@ kubectl apply -f k8s/namespace.yaml
 kubectl apply -f k8s/postgres-deployment.yaml
 kubectl apply -f k8s/api-deployment.yaml
 kubectl apply -f k8s/frontend-deployment.yaml
-```
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-./mvnw test
-
-# Run with coverage
-./mvnw test jacoco:report
-
-# View coverage report
-open target/site/jacoco/index.html
 ```
 
 ## 📁 Project Structure

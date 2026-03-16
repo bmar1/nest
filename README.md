@@ -1,6 +1,6 @@
 # 🏡 Nest
 
-**Stop scrolling. Start scoring.**
+**Find your dream home cheaper & faster and without the hassle.**
 
 Nest is an apartment search platform that scrapes live listings, reuses fresh cached listings from PostgreSQL, deduplicates results across sources, and ranks apartments based on your priorities instead of generic sort order. Tell Nest what matters most, and it returns scored results with source links, images, and transparent score breakdowns.
 
@@ -185,30 +185,6 @@ kubectl apply -f k8s/namespace.yaml
 kubectl apply -f k8s/postgres-deployment.yaml
 kubectl apply -f k8s/api-deployment.yaml
 kubectl apply -f k8s/frontend-deployment.yaml
-```
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-./mvnw test
-
-# Run with coverage
-./mvnw test jacoco:report
-
-# View coverage report
-open target/site/jacoco/index.html
-```
-
-### Practical local verification
-
-```bash
-# Backend build
-./mvnw clean package -DskipTests
-
-# Frontend build
-cd src/nestapp-frontend/nestapp
-npm run build
 ```
 
 ## 📁 Project Structure

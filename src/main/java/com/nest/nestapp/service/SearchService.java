@@ -5,11 +5,17 @@ import com.nest.nestapp.model.*;
 import com.nest.nestapp.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationContext;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -22,6 +28,9 @@ public class SearchService {
     private final ScrapingJobRepository scrapingJobRepository;
     private final ApartmentRepository apartmentRepository;
     private final ApartmentScoreRepository apartmentScoreRepository;
+    private final ScraperService scraperService;
+    private final ScoringService scoringService;
+    private final ApplicationContext applicationContext;
 
     @Transactional
     public SearchResponseDto createSearch(SearchRequestDto dto) {
@@ -30,6 +39,8 @@ public class SearchService {
                 .priority(dto.getPriority())
                 .maxPrice(dto.getMaxPrice())
                 .minSqft(dto.getMinSqft())
+                .desiredBedrooms(dto.getDesiredBedrooms())
+                .desiredBathrooms(dto.getDesiredBathrooms())
                 .desiredAmenities(dto.getDesiredAmenities() != null ? dto.getDesiredAmenities() : new ArrayList<>())
                 .maxLeaseMonths(dto.getMaxLeaseMonths())
                 .status(JobStatus.PENDING)
@@ -45,8 +56,8 @@ public class SearchService {
         scrapingJobRepository.save(job);
         
         log.info("Created search request with ID: {}", searchRequest.getId());
-        
-        // TODO: Publish message to queue for async processing
+
+        applicationContext.getBean(SearchService.class).processSearchAsync(searchRequest.getId());
         
         return SearchResponseDto.builder()
                 .searchId(searchRequest.getId())
@@ -54,6 +65,60 @@ public class SearchService {
                 .pollingUrl("/api/v1/search/" + searchRequest.getId() + "/results")
                 .estimatedWaitSeconds(120)
                 .build();
+    }
+
+    @Async
+    @Transactional
+    public void processSearchAsync(UUID searchId) {
+        ScrapingJob job = scrapingJobRepository.findBySearchId(searchId)
+                .orElseThrow(() -> new RuntimeException("Scraping job not found for search: " + searchId));
+        SearchRequest request = searchRequestRepository.findById(searchId)
+                .orElseThrow(() -> new RuntimeException("Search request not found: " + searchId));
+
+        try {
+            job.setStatus(JobStatus.PROCESSING);
+            job.setStartedAt(OffsetDateTime.now());
+            job.setErrorMessage(null);
+            scrapingJobRepository.save(job);
+
+            request.setStatus(JobStatus.PROCESSING);
+            searchRequestRepository.save(request);
+
+            List<Apartment> apartments = scraperService.scrapeApartments(request);
+            apartments = applySpecificNeeds(apartments, request);
+
+            job.setTotalAttempted(apartments.size());
+
+            if (!apartments.isEmpty()) {
+                List<Apartment> savedApartments = apartmentRepository.saveAll(apartments);
+                List<ApartmentScore> scores = buildScores(savedApartments, request);
+                apartmentScoreRepository.saveAll(scores);
+                job.setTotalSuccessful(savedApartments.size());
+                job.setTotalFailed(Math.max(0, job.getTotalAttempted() - savedApartments.size()));
+            } else {
+                job.setTotalSuccessful(0);
+                job.setTotalFailed(0);
+            }
+
+            job.setStatus(JobStatus.COMPLETED);
+            job.setCompletedAt(OffsetDateTime.now());
+            scrapingJobRepository.save(job);
+
+            request.setStatus(JobStatus.COMPLETED);
+            searchRequestRepository.save(request);
+
+            log.info("Completed search {}", searchId);
+        } catch (Exception e) {
+            log.error("Search processing failed for {}", searchId, e);
+
+            job.setStatus(JobStatus.FAILED);
+            job.setCompletedAt(OffsetDateTime.now());
+            job.setErrorMessage(e.getMessage());
+            scrapingJobRepository.save(job);
+
+            request.setStatus(JobStatus.FAILED);
+            searchRequestRepository.save(request);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -67,33 +132,39 @@ public class SearchService {
             List<ApartmentScore> scores = apartmentScoreRepository.findTop20BySearchIdOrderByFinalScoreDesc(searchId);
             List<UUID> apartmentIds = scores.stream().map(ApartmentScore::getApartmentId).collect(Collectors.toList());
             List<Apartment> apartments = apartmentRepository.findAllById(apartmentIds);
+            Map<UUID, Apartment> apartmentsById = new HashMap<>();
+            for (Apartment apartment : apartments) {
+                apartmentsById.put(apartment.getId(), apartment);
+            }
             
             // Map to DTOs
-            List<ApartmentDto> apartmentDtos = apartments.stream()
-                    .map(apt -> {
-                        ApartmentScore score = scores.stream()
-                                .filter(s -> s.getApartmentId().equals(apt.getId()))
-                                .findFirst()
-                                .orElse(null);
-                        
+            List<ApartmentDto> apartmentDtos = scores.stream()
+                    .map(score -> {
+                        Apartment apt = apartmentsById.get(score.getApartmentId());
+                        if (apt == null) {
+                            return null;
+                        }
+
                         return ApartmentDto.builder()
                                 .id(apt.getId())
                                 .title(apt.getTitle())
                                 .price(apt.getPrice())
                                 .sqft(apt.getSqft())
                                 .bedrooms(apt.getBedrooms())
+                                .bathrooms(apt.getBathrooms())
                                 .amenities(apt.getAmenities())
                                 .leaseTermMonths(apt.getLeaseTermMonths())
                                 .sourceUrl(apt.getSourceUrl())
-                                .finalScore(score != null ? score.getFinalScore() : null)
-                                .scoreBreakdown(score != null ? ScoreBreakdownDto.builder()
+                                .finalScore(score.getFinalScore())
+                                .scoreBreakdown(ScoreBreakdownDto.builder()
                                         .priceScore(score.getPriceScore())
                                         .spaceScore(score.getSpaceScore())
                                         .amenitiesScore(score.getAmenitiesScore())
                                         .leaseScore(score.getLeaseScore())
-                                        .build() : null)
+                                        .build())
                                 .build();
                     })
+                    .filter(java.util.Objects::nonNull)
                     .collect(Collectors.toList());
             
             return SearchResultsDto.builder()
@@ -126,5 +197,58 @@ public class SearchService {
                     .estimatedWaitSeconds(120)
                     .build();
         }
+    }
+
+    private List<ApartmentScore> buildScores(List<Apartment> apartments, SearchRequest request) {
+        int minPrice = apartments.stream()
+                .map(Apartment::getPrice)
+                .filter(java.util.Objects::nonNull)
+                .min(Comparator.naturalOrder())
+                .orElse(request.getMaxPrice());
+        int maxPrice = apartments.stream()
+                .map(Apartment::getPrice)
+                .filter(java.util.Objects::nonNull)
+                .max(Comparator.naturalOrder())
+                .orElse(request.getMaxPrice());
+        int minSqft = apartments.stream()
+                .map(Apartment::getSqft)
+                .filter(java.util.Objects::nonNull)
+                .min(Comparator.naturalOrder())
+                .orElse(request.getMinSqft());
+        int maxSqft = apartments.stream()
+                .map(Apartment::getSqft)
+                .filter(java.util.Objects::nonNull)
+                .max(Comparator.naturalOrder())
+                .orElse(request.getMinSqft());
+
+        return apartments.stream()
+                .map(apartment -> scoringService.calculateScore(apartment, request, minPrice, maxPrice, minSqft, maxSqft))
+                .collect(Collectors.toList());
+    }
+
+    private List<Apartment> applySpecificNeeds(List<Apartment> apartments, SearchRequest request) {
+        if (apartments.isEmpty()) {
+            return apartments;
+        }
+
+        boolean hasBedroomNeed = request.getDesiredBedrooms() != null;
+        boolean hasBathroomNeed = request.getDesiredBathrooms() != null;
+        if (!hasBedroomNeed && !hasBathroomNeed) {
+            return apartments;
+        }
+
+        List<Apartment> filtered = apartments.stream()
+                .filter(apartment -> request.getDesiredBedrooms() == null
+                        || (apartment.getBedrooms() != null && apartment.getBedrooms() >= request.getDesiredBedrooms()))
+                .filter(apartment -> request.getDesiredBathrooms() == null
+                        || (apartment.getBathrooms() != null && apartment.getBathrooms() >= request.getDesiredBathrooms()))
+                .collect(Collectors.toList());
+
+        if (filtered.isEmpty()) {
+            log.info("No listings matched bedroom/bathroom requirements for search {}, falling back to all listings", request.getId());
+            return apartments;
+        }
+
+        return filtered;
     }
 }

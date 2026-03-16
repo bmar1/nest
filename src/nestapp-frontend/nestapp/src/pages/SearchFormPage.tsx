@@ -24,6 +24,9 @@ import {
   SlidersHorizontal,
   Zap,
   Clock,
+  Loader2,
+  Bed,
+  Bath,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -35,6 +38,8 @@ interface SearchFormData {
   priority: Priority
   maxPrice: number
   minSqft: number
+  desiredBedrooms: number | null
+  desiredBathrooms: number | null
   desiredAmenities: string[]
   maxLeaseMonths: number
 }
@@ -97,29 +102,40 @@ const leaseOptions = [
   { value: 24, label: '2 years' },
 ]
 
+const bedroomOptions = [1, 2, 3, 4]
+const bathroomOptions = [1, 2, 3, 4]
+
 /** Smart defaults per priority — the core of the sub-5s experience */
 const priorityPresets: Record<Priority, Partial<SearchFormData>> = {
   BUDGET: {
     maxPrice: 1800,
     minSqft: 600,
+    desiredBedrooms: null,
+    desiredBathrooms: null,
     maxLeaseMonths: 12,
     desiredAmenities: [],
   },
   SPACE: {
     maxPrice: 3000,
     minSqft: 1100,
+    desiredBedrooms: 2,
+    desiredBathrooms: 2,
     maxLeaseMonths: 12,
     desiredAmenities: [],
   },
   AMENITIES: {
     maxPrice: 2500,
     minSqft: 700,
+    desiredBedrooms: null,
+    desiredBathrooms: null,
     maxLeaseMonths: 12,
     desiredAmenities: ['laundry', 'parking', 'gym'],
   },
   BALANCED: {
     maxPrice: 2500,
     minSqft: 800,
+    desiredBedrooms: 1,
+    desiredBathrooms: 1,
     maxLeaseMonths: 12,
     desiredAmenities: ['laundry', 'parking'],
   },
@@ -135,6 +151,8 @@ export function SearchFormPage() {
     priority: 'BALANCED',
     maxPrice: 2500,
     minSqft: 800,
+    desiredBedrooms: 1,
+    desiredBathrooms: 1,
     desiredAmenities: ['laundry', 'parking'],
     maxLeaseMonths: 12,
   })
@@ -180,9 +198,35 @@ export function SearchFormPage() {
   }
 
   const selectedPriority = priorities.find((p) => p.value === formData.priority)
+  const activeFineTuneCount =
+    (formData.desiredBedrooms ? 1 : 0) +
+    (formData.desiredBathrooms ? 1 : 0) +
+    (formData.desiredAmenities.length > 0 ? 1 : 0) +
+    (formData.maxLeaseMonths !== 12 ? 1 : 0)
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-cream via-cream to-sage-muted/20 dark-mesh">
+      <AnimatePresence>
+        {isSubmitting && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-cream/85 backdrop-blur-sm dark:bg-background/85"
+            aria-live="polite"
+            aria-busy="true"
+          >
+            <div className="flex flex-col items-center gap-4 rounded-3xl border border-sage-muted/30 bg-white/85 px-8 py-7 shadow-xl dark:border-border dark:bg-surface/90">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" aria-hidden />
+              <div className="text-center">
+                <p className="text-lg font-semibold text-foreground">Starting your search</p>
+                <p className="mt-1 text-sm text-muted-foreground">We&apos;re sending your preferences now.</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <header className="sticky top-0 z-10 border-b border-sage-muted/40 bg-cream/95 backdrop-blur supports-[backdrop-filter]:bg-cream/80 dark:border-border dark:bg-surface/95 dark:supports-[backdrop-filter]:bg-surface/80">
         <div className="container mx-auto flex h-14 max-w-2xl items-center justify-between px-4">
@@ -315,6 +359,16 @@ export function SearchFormPage() {
                     <span className="inline-flex items-center rounded-md bg-cream px-2.5 py-0.5 font-mono text-xs font-medium text-foreground dark:bg-surface-elevated">
                       ≥ {formData.minSqft.toLocaleString()} sq ft
                     </span>
+                    {formData.desiredBedrooms && (
+                      <span className="inline-flex items-center rounded-md bg-cream px-2.5 py-0.5 font-mono text-xs font-medium text-foreground dark:bg-surface-elevated">
+                        {formData.desiredBedrooms}+ bed
+                      </span>
+                    )}
+                    {formData.desiredBathrooms && (
+                      <span className="inline-flex items-center rounded-md bg-cream px-2.5 py-0.5 font-mono text-xs font-medium text-foreground dark:bg-surface-elevated">
+                        {formData.desiredBathrooms}+ bath
+                      </span>
+                    )}
                     <span className="inline-flex items-center rounded-md bg-cream px-2.5 py-0.5 font-mono text-xs font-medium text-foreground dark:bg-surface-elevated">
                       {formData.maxLeaseMonths} mo lease
                     </span>
@@ -339,16 +393,41 @@ export function SearchFormPage() {
             <button
               type="button"
               onClick={() => setShowFineTune(!showFineTune)}
-              className="mx-auto flex cursor-pointer items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:bg-sage-muted/20 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:hover:bg-surface-elevated"
+              className={cn(
+                'w-full cursor-pointer rounded-2xl border px-5 py-4 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                showFineTune
+                  ? 'border-primary/30 bg-primary/5 shadow-md shadow-primary/10'
+                  : 'border-sage-muted/40 bg-white/80 hover:border-primary/30 hover:bg-white hover:shadow-md dark:border-border dark:bg-surface/80 dark:hover:bg-surface-elevated'
+              )}
               aria-expanded={showFineTune}
             >
-              <SlidersHorizontal className="h-4 w-4" aria-hidden />
-              {showFineTune ? 'Hide options' : 'Fine-tune (optional)'}
-              {showFineTune ? (
-                <ChevronUp className="h-4 w-4" aria-hidden />
-              ) : (
-                <ChevronDown className="h-4 w-4" aria-hidden />
-              )}
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <SlidersHorizontal className="h-5 w-5" aria-hidden />
+                  </div>
+                  <div>
+                    <p className="text-base font-semibold text-foreground">
+                      Fine-tune for specific needs
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Add bedrooms, bathrooms, lease length, and must-haves.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {activeFineTuneCount > 0 && (
+                    <span className="rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">
+                      {activeFineTuneCount} active
+                    </span>
+                  )}
+                  {showFineTune ? (
+                    <ChevronUp className="h-5 w-5 text-muted-foreground" aria-hidden />
+                  ) : (
+                    <ChevronDown className="h-5 w-5 text-muted-foreground" aria-hidden />
+                  )}
+                </div>
+              </div>
             </button>
           </motion.div>
 
@@ -363,6 +442,20 @@ export function SearchFormPage() {
                 className="overflow-hidden"
               >
                 <div className="space-y-6 pt-4">
+                  <Card className="border-primary/20 bg-primary/5 p-5 backdrop-blur-sm dark:border-primary/15 dark:bg-primary/10">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <Sparkles className="h-5 w-5" aria-hidden />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">Need something more specific?</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          Use these filters to quickly target the right layout before we rank listings.
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+
                   {/* Budget slider */}
                   <Card className="border-sage-muted/30 bg-white/60 p-5 backdrop-blur-sm dark:border-border dark:bg-surface/60">
                     <div className="flex items-center justify-between">
@@ -423,6 +516,70 @@ export function SearchFormPage() {
                       step={50}
                       className="mt-3"
                     />
+                  </Card>
+
+                  <Card className="border-sage-muted/30 bg-white/60 p-5 backdrop-blur-sm dark:border-border dark:bg-surface/60">
+                    <div className="grid gap-5 sm:grid-cols-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Bed className="h-4 w-4 text-primary" aria-hidden />
+                          <span className="text-sm font-medium text-foreground">Bedrooms</span>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {bedroomOptions.map((bedrooms) => (
+                            <button
+                              key={bedrooms}
+                              type="button"
+                              onClick={() =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  desiredBedrooms:
+                                    prev.desiredBedrooms === bedrooms ? null : bedrooms,
+                                }))
+                              }
+                              className={cn(
+                                'min-w-[68px] cursor-pointer rounded-xl border px-4 py-3 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                                formData.desiredBedrooms === bedrooms
+                                  ? 'border-primary bg-primary text-primary-foreground shadow-md'
+                                  : 'border-sage-muted/30 bg-white text-muted-foreground hover:border-primary/30 dark:border-border dark:bg-surface'
+                              )}
+                            >
+                              {bedrooms}+
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Bath className="h-4 w-4 text-primary" aria-hidden />
+                          <span className="text-sm font-medium text-foreground">Bathrooms</span>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {bathroomOptions.map((bathrooms) => (
+                            <button
+                              key={bathrooms}
+                              type="button"
+                              onClick={() =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  desiredBathrooms:
+                                    prev.desiredBathrooms === bathrooms ? null : bathrooms,
+                                }))
+                              }
+                              className={cn(
+                                'min-w-[68px] cursor-pointer rounded-xl border px-4 py-3 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                                formData.desiredBathrooms === bathrooms
+                                  ? 'border-primary bg-primary text-primary-foreground shadow-md'
+                                  : 'border-sage-muted/30 bg-white text-muted-foreground hover:border-primary/30 dark:border-border dark:bg-surface'
+                              )}
+                            >
+                              {bathrooms}+
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </Card>
 
                   {/* Lease - tap chips instead of number input */}

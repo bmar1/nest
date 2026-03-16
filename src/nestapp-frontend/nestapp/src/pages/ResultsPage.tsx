@@ -1,5 +1,6 @@
-import { useState, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { useNavigate, useParams, Link } from 'react-router-dom'
+import axios from 'axios'
 import { motion, AnimatePresence, useInView } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -7,9 +8,9 @@ import {
   ArrowLeft,
   Home,
   Trophy,
-  Star,
   MapPin,
   Bed,
+  Bath,
   Maximize2,
   Calendar,
   Sparkles,
@@ -25,21 +26,64 @@ import {
   Heart,
   Share2,
   TrendingUp,
-  Eye,
+  Star,
   BarChart3,
   DollarSign,
   Layout,
   Clock,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-/* ─── Hardcoded Demo Data ──────────────── */
+/* ─── API Types ────────────────────────── */
+
+type JobStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
+
+interface ApiScoreBreakdown {
+  priceScore: number
+  spaceScore: number
+  amenitiesScore: number
+  leaseScore: number
+}
+
+interface ApartmentDto {
+  id: string
+  title: string
+  price: number
+  sqft: number
+  bedrooms: number
+  bathrooms?: number
+  amenities: string[]
+  leaseTermMonths: number
+  sourceUrl: string
+  finalScore: number
+  scoreBreakdown: ApiScoreBreakdown
+}
+
+interface SearchResultsDto {
+  searchId: string
+  status: JobStatus
+  totalApartmentsFound?: number
+  totalAttempted?: number
+  totalSuccessful?: number
+  apartments?: ApartmentDto[]
+  estimatedWaitSeconds?: number
+}
+
+/* ─── Display Types ────────────────────── */
+
+interface ScoreBreakdown {
+  priceScore: number   // 0-100 normalised for display
+  spaceScore: number
+  amenitiesScore: number
+  leaseScore: number
+}
 
 interface Apartment {
   id: string
   rank: number
   title: string
-  address: string
   price: number
   sqft: number
   bedrooms: number
@@ -47,19 +91,55 @@ interface Apartment {
   amenities: string[]
   leaseTermMonths: number
   sourceUrl: string
-  image: string
   finalScore: number
   matchLabel: string
-  highlights: string[]
-  scoreBreakdown: {
-    priceScore: number
-    spaceScore: number
-    amenitiesScore: number
-    leaseScore: number
+  scoreBreakdown: ScoreBreakdown
+}
+
+/* ─── Helpers ──────────────────────────── */
+
+function getMatchLabel(score: number): string {
+  if (score >= 90) return 'Perfect Match'
+  if (score >= 80) return 'Great Match'
+  if (score >= 70) return 'Strong Pick'
+  if (score >= 60) return 'Good Value'
+  return 'Listed'
+}
+
+/** Normalise raw sub-scores to 0-100 for progress bars */
+function normaliseBreakdown(raw: ApiScoreBreakdown): ScoreBreakdown {
+  return {
+    priceScore: Math.round(Math.min(100, (raw.priceScore / 30) * 100)),
+    spaceScore: Math.round(Math.min(100, (raw.spaceScore / 30) * 100)),
+    amenitiesScore: Math.round(Math.min(100, (raw.amenitiesScore / 20) * 100)),
+    leaseScore: Math.round(Math.min(100, (raw.leaseScore / 20) * 100)),
+  }
+}
+
+function mapDto(dto: ApartmentDto, index: number): Apartment {
+  return {
+    id: dto.id,
+    rank: index + 1,
+    title: dto.title,
+    price: dto.price,
+    sqft: dto.sqft ?? 0,
+    bedrooms: dto.bedrooms ?? 0,
+    bathrooms: dto.bathrooms ?? 0,
+    amenities: dto.amenities ?? [],
+    leaseTermMonths: dto.leaseTermMonths ?? 12,
+    sourceUrl: dto.sourceUrl,
+    finalScore: Math.round(Number(dto.finalScore)),
+    matchLabel: getMatchLabel(Math.round(Number(dto.finalScore))),
+    scoreBreakdown: normaliseBreakdown(dto.scoreBreakdown ?? { priceScore: 0, spaceScore: 0, amenitiesScore: 0, leaseScore: 0 }),
   }
 }
 
 const amenityIconMap: Record<string, typeof Shirt> = {
+  laundry: Shirt,
+  parking: Car,
+  gym: Dumbbell,
+  wifi: Wifi,
+  pets: Dog,
   'In-unit laundry': Shirt,
   Parking: Car,
   Gym: Dumbbell,
@@ -67,141 +147,32 @@ const amenityIconMap: Record<string, typeof Shirt> = {
   'Pet friendly': Dog,
 }
 
-const apartments: Apartment[] = [
-  {
-    id: '1',
-    rank: 1,
-    title: 'The Sunlit Gallery',
-    address: '142 Maple Avenue, Brooklyn, NY',
-    price: 2150,
-    sqft: 1050,
-    bedrooms: 2,
-    bathrooms: 1,
-    amenities: ['In-unit laundry', 'Parking', 'Gym', 'High-speed internet'],
-    leaseTermMonths: 12,
-    sourceUrl: '#',
-    image: '/apartment-hero.png',
-    finalScore: 97,
-    matchLabel: 'Perfect Match',
-    highlights: [
-      'Natural light all day — south-facing windows',
-      'Recently renovated kitchen with quartz countertops',
-      'Walking distance to 3 subway lines',
-    ],
-    scoreBreakdown: {
-      priceScore: 92,
-      spaceScore: 98,
-      amenitiesScore: 100,
-      leaseScore: 95,
-    },
-  },
-  {
-    id: '2',
-    rank: 2,
-    title: 'Harbor View Studio',
-    address: '88 Atlantic Blvd, Jersey City, NJ',
-    price: 1850,
-    sqft: 680,
-    bedrooms: 1,
-    bathrooms: 1,
-    amenities: ['Gym', 'High-speed internet', 'Pet friendly'],
-    leaseTermMonths: 12,
-    sourceUrl: '#',
-    image: '/apartment-studio.png',
-    finalScore: 91,
-    matchLabel: 'Great Value',
-    highlights: [
-      'Stunning harbor views from 12th floor',
-      'Pet-friendly building with dog park',
-    ],
-    scoreBreakdown: {
-      priceScore: 96,
-      spaceScore: 78,
-      amenitiesScore: 88,
-      leaseScore: 95,
-    },
-  },
-  {
-    id: '3',
-    rank: 3,
-    title: 'The Maple Residence',
-    address: '301 Park Street, Hoboken, NJ',
-    price: 2400,
-    sqft: 1200,
-    bedrooms: 2,
-    bathrooms: 2,
-    amenities: ['In-unit laundry', 'Parking', 'Gym', 'High-speed internet', 'Pet friendly'],
-    leaseTermMonths: 6,
-    sourceUrl: '#',
-    image: '/apartment-modern.png',
-    finalScore: 88,
-    matchLabel: 'Most Spacious',
-    highlights: [
-      'Full 2 bed / 2 bath with walk-in closet',
-      'Flexible 6-month lease option',
-    ],
-    scoreBreakdown: {
-      priceScore: 72,
-      spaceScore: 100,
-      amenitiesScore: 100,
-      leaseScore: 85,
-    },
-  },
-  {
-    id: '4',
-    rank: 4,
-    title: 'Greenpoint Corner',
-    address: '55 Franklin St, Brooklyn, NY',
-    price: 1950,
-    sqft: 750,
-    bedrooms: 1,
-    bathrooms: 1,
-    amenities: ['In-unit laundry', 'High-speed internet'],
-    leaseTermMonths: 12,
-    sourceUrl: '#',
-    image: '/apartment-studio.png',
-    finalScore: 84,
-    matchLabel: 'Cozy Pick',
-    highlights: [
-      'Quiet tree-lined street',
-      'In-unit washer/dryer',
-    ],
-    scoreBreakdown: {
-      priceScore: 88,
-      spaceScore: 82,
-      amenitiesScore: 70,
-      leaseScore: 95,
-    },
-  },
-  {
-    id: '5',
-    rank: 5,
-    title: 'Riverside Loft',
-    address: '12 River Rd, Long Island City, NY',
-    price: 2800,
-    sqft: 1400,
-    bedrooms: 3,
-    bathrooms: 2,
-    amenities: ['Parking', 'Gym', 'High-speed internet', 'Pet friendly'],
-    leaseTermMonths: 12,
-    sourceUrl: '#',
-    image: '/apartment-modern.png',
-    finalScore: 79,
-    matchLabel: 'Family Friendly',
-    highlights: [
-      'Largest layout with dedicated office space',
-      'Rooftop access with river views',
-    ],
-    scoreBreakdown: {
-      priceScore: 58,
-      spaceScore: 100,
-      amenitiesScore: 92,
-      leaseScore: 95,
-    },
-  },
-]
+const amenityLabel: Record<string, string> = {
+  laundry: 'Laundry',
+  parking: 'Parking',
+  gym: 'Gym',
+  wifi: 'Internet',
+  pets: 'Pets OK',
+}
 
-/* ─── Score Bar Component ──────────────── */
+function displayAmenity(a: string) {
+  return amenityLabel[a] ?? a
+}
+
+const CONFETTI_DOTS = Array.from({ length: 20 }, (_, i) => ({
+  id: i,
+  initialX: ((i * 17) % 100) - 50,
+  travelY: 120 + ((i * 37) % 180),
+  travelX: ((i * 29) % 200) - 100,
+  rotate: (i * 97) % 720,
+  duration: 2.5 + ((i * 11) % 10) / 10,
+  delay: ((i * 7) % 8) / 10,
+  sizeClass: i % 2 === 0 ? 'h-2 w-2' : 'h-3 w-3',
+  colorClass: ['bg-primary', 'bg-sage', 'bg-warm', 'bg-amber-400', 'bg-emerald-400'][i % 5],
+  left: `${20 + ((i * 13) % 60)}%`,
+}))
+
+/* ─── Score Bar ────────────────────────── */
 
 function ScoreBar({ label, score, icon: Icon, delay = 0 }: {
   label: string
@@ -212,12 +183,8 @@ function ScoreBar({ label, score, icon: Icon, delay = 0 }: {
   const ref = useRef<HTMLDivElement>(null)
   const isInView = useInView(ref, { once: true })
 
-  const getColor = (s: number) => {
-    if (s >= 90) return 'bg-primary'
-    if (s >= 75) return 'bg-sage'
-    if (s >= 60) return 'bg-amber-500'
-    return 'bg-red-400'
-  }
+  const getColor = (s: number) =>
+    s >= 90 ? 'bg-primary' : s >= 75 ? 'bg-sage' : s >= 60 ? 'bg-amber-500' : 'bg-red-400'
 
   return (
     <div ref={ref} className="space-y-1">
@@ -228,7 +195,7 @@ function ScoreBar({ label, score, icon: Icon, delay = 0 }: {
         </span>
         <span className="font-mono font-semibold text-foreground">{score}</span>
       </div>
-      <div className="h-2 rounded-full bg-sage-muted/20 dark:bg-surface-overlay">
+      <div className="h-2 rounded-full bg-sage-muted/20">
         <motion.div
           initial={{ width: 0 }}
           animate={isInView ? { width: `${score}%` } : { width: 0 }}
@@ -240,46 +207,32 @@ function ScoreBar({ label, score, icon: Icon, delay = 0 }: {
   )
 }
 
-/* ─── Celebration Confetti ─────────────── */
+/* ─── Confetti ─────────────────────────── */
 
 function ConfettiDots() {
-  const colors = ['bg-primary', 'bg-sage', 'bg-warm', 'bg-amber-400', 'bg-emerald-400']
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {Array.from({ length: 20 }).map((_, i) => (
+      {CONFETTI_DOTS.map((dot) => (
         <motion.div
-          key={i}
-          initial={{
-            opacity: 0,
-            y: -20,
-            x: Math.random() * 100 - 50,
-            scale: 0,
-          }}
+          key={dot.id}
+          initial={{ opacity: 0, y: -20, x: dot.initialX, scale: 0 }}
           animate={{
             opacity: [0, 1, 1, 0],
-            y: [0, 100 + Math.random() * 200],
-            x: (Math.random() - 0.5) * 200,
+            y: [0, dot.travelY],
+            x: dot.travelX,
             scale: [0, 1, 1, 0.5],
-            rotate: Math.random() * 720,
+            rotate: dot.rotate,
           }}
-          transition={{
-            duration: 2.5 + Math.random() * 1.5,
-            delay: Math.random() * 0.8,
-            ease: 'easeOut',
-          }}
-          className={cn(
-            'absolute top-1/4 left-1/2 rounded-full',
-            Math.random() > 0.5 ? 'h-2 w-2' : 'h-3 w-3',
-            colors[Math.floor(Math.random() * colors.length)]
-          )}
-          style={{ left: `${20 + Math.random() * 60}%` }}
+          transition={{ duration: dot.duration, delay: dot.delay, ease: 'easeOut' }}
+          className={cn('absolute top-1/4 rounded-full', dot.sizeClass, dot.colorClass)}
+          style={{ left: dot.left }}
         />
       ))}
     </div>
   )
 }
 
-/* ─── #1 Apartment Detail Modal ──────── */
+/* ─── Detail Modal ─────────────────────── */
 
 function ApartmentDetailModal({ apartment, onClose }: { apartment: Apartment; onClose: () => void }) {
   return (
@@ -299,68 +252,69 @@ function ApartmentDetailModal({ apartment, onClose }: { apartment: Apartment; on
           className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-cream shadow-2xl dark:bg-background"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/90 shadow-md backdrop-blur-sm transition-all hover:bg-white hover:shadow-lg dark:bg-surface/90 dark:hover:bg-surface-elevated"
+            className="absolute top-4 right-4 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/90 shadow-md backdrop-blur-sm transition-all hover:bg-white hover:shadow-lg"
             aria-label="Close details"
           >
             <X className="h-5 w-5 text-charcoal" />
           </button>
 
-          {/* Hero image */}
-          <div className="relative h-64 w-full overflow-hidden rounded-t-3xl sm:h-80">
-            <img
-              src={apartment.image}
-              alt={apartment.title}
-              className="h-full w-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          {/* Hero banner — gradient placeholder */}
+          <div className="relative flex h-48 w-full items-center justify-center overflow-hidden rounded-t-3xl bg-gradient-to-br from-primary/20 via-sage/10 to-cream-dark sm:h-64">
+            <Home className="h-24 w-24 text-primary/20" aria-hidden />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
             <div className="absolute bottom-4 left-6 right-6">
               <div className="flex items-center gap-2">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-lg">
                   <Trophy className="h-5 w-5 text-white" aria-hidden />
                 </div>
-                <div>
-                  <span className="inline-block rounded-full bg-primary/90 px-3 py-0.5 text-xs font-bold text-white backdrop-blur-sm">
-                    #1 BEST MATCH
-                  </span>
-                </div>
+                <span className="inline-block rounded-full bg-primary/90 px-3 py-0.5 text-xs font-bold text-white backdrop-blur-sm">
+                  #1 BEST MATCH
+                </span>
               </div>
               <h2 className="mt-2 text-2xl font-bold text-white sm:text-3xl">{apartment.title}</h2>
-              <p className="flex items-center gap-1 text-sm text-white/80">
-                <MapPin className="h-3.5 w-3.5" aria-hidden />
-                {apartment.address}
-              </p>
             </div>
           </div>
 
-          {/* Content */}
           <div className="p-6 sm:p-8">
-            {/* Stats row */}
+            {/* Stats */}
             <div className="flex flex-wrap gap-4">
-              <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm dark:bg-surface">
+              <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm">
                 <DollarSign className="h-4 w-4 text-primary" aria-hidden />
                 <div>
                   <p className="font-mono text-xl font-bold text-primary">${apartment.price.toLocaleString()}</p>
                   <p className="text-xs text-muted-foreground">/month</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm dark:bg-surface">
-                <Maximize2 className="h-4 w-4 text-primary" aria-hidden />
-                <div>
-                  <p className="font-mono text-xl font-bold text-foreground">{apartment.sqft.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">sq ft</p>
+              {apartment.sqft > 0 && (
+                <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm">
+                  <Maximize2 className="h-4 w-4 text-primary" aria-hidden />
+                  <div>
+                    <p className="font-mono text-xl font-bold text-foreground">{apartment.sqft.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">sq ft</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm dark:bg-surface">
-                <Bed className="h-4 w-4 text-primary" aria-hidden />
-                <div>
-                  <p className="font-mono text-xl font-bold text-foreground">{apartment.bedrooms}bd / {apartment.bathrooms}ba</p>
-                  <p className="text-xs text-muted-foreground">bedrooms</p>
+              )}
+              {apartment.bedrooms > 0 && (
+                <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm">
+                  <Bed className="h-4 w-4 text-primary" aria-hidden />
+                  <div>
+                    <p className="font-mono text-xl font-bold text-foreground">{apartment.bedrooms}bd</p>
+                    <p className="text-xs text-muted-foreground">bedrooms</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm dark:bg-surface">
+              )}
+              {apartment.bathrooms > 0 && (
+                <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm">
+                  <Bath className="h-4 w-4 text-primary" aria-hidden />
+                  <div>
+                    <p className="font-mono text-xl font-bold text-foreground">{apartment.bathrooms}ba</p>
+                    <p className="text-xs text-muted-foreground">bathrooms</p>
+                  </div>
+                </div>
+              )}
+              <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm">
                 <Calendar className="h-4 w-4 text-primary" aria-hidden />
                 <div>
                   <p className="font-mono text-xl font-bold text-foreground">{apartment.leaseTermMonths}</p>
@@ -369,29 +323,13 @@ function ApartmentDetailModal({ apartment, onClose }: { apartment: Apartment; on
               </div>
             </div>
 
-            {/* Why this is your #1 */}
-            <div className="mt-8">
-              <h3 className="flex items-center gap-2 text-lg font-semibold text-foreground">
-                <Sparkles className="h-5 w-5 text-primary" aria-hidden />
-                Why this is your #1
-              </h3>
-              <ul className="mt-3 space-y-2">
-                {apartment.highlights.map((h) => (
-                  <li key={h} className="flex items-start gap-3 text-muted-foreground">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
-                    <span>{h}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
             {/* Score breakdown */}
             <div className="mt-8">
               <h3 className="flex items-center gap-2 text-lg font-semibold text-foreground">
                 <BarChart3 className="h-5 w-5 text-primary" aria-hidden />
                 Score Breakdown
               </h3>
-              <Card className="mt-3 border-sage-muted/30 bg-white/70 p-5 dark:border-border dark:bg-surface/70">
+              <Card className="mt-3 border-sage-muted/30 bg-white/70 p-5">
                 <div className="mb-4 flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Overall Match</span>
                   <span className="font-mono text-3xl font-bold text-primary">
@@ -409,23 +347,25 @@ function ApartmentDetailModal({ apartment, onClose }: { apartment: Apartment; on
             </div>
 
             {/* Amenities */}
-            <div className="mt-8">
-              <h3 className="text-lg font-semibold text-foreground">Amenities</h3>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {apartment.amenities.map((a) => {
-                  const Icon = amenityIconMap[a] || CheckCircle2
-                  return (
-                    <span
-                      key={a}
-                      className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-sm font-medium text-primary"
-                    >
-                      <Icon className="h-4 w-4" aria-hidden />
-                      {a}
-                    </span>
-                  )
-                })}
+            {apartment.amenities.length > 0 && (
+              <div className="mt-8">
+                <h3 className="text-lg font-semibold text-foreground">Amenities</h3>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {apartment.amenities.map((a) => {
+                    const Icon = amenityIconMap[a] ?? CheckCircle2
+                    return (
+                      <span
+                        key={a}
+                        className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-sm font-medium text-primary"
+                      >
+                        <Icon className="h-4 w-4" aria-hidden />
+                        {displayAmenity(a)}
+                      </span>
+                    )
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* CTA */}
             <div className="mt-8 flex gap-3">
@@ -449,7 +389,7 @@ function ApartmentDetailModal({ apartment, onClose }: { apartment: Apartment; on
   )
 }
 
-/* ─── Ranking List Card ────────────────── */
+/* ─── Ranking Card ─────────────────────── */
 
 function RankingCard({ apartment, onViewDetails }: {
   apartment: Apartment
@@ -464,17 +404,16 @@ function RankingCard({ apartment, onViewDetails }: {
       ref={ref}
       initial={{ opacity: 0, y: 30 }}
       animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-      transition={{ duration: 0.5, delay: apartment.rank * 0.08 }}
+      transition={{ duration: 0.5, delay: apartment.rank * 0.07 }}
       whileHover={isFirst ? { scale: 1.01, y: -4 } : { scale: 1.005, y: -2 }}
       className={cn(
         'group relative overflow-hidden rounded-2xl border-2 transition-all duration-300',
         isFirst
-          ? 'cursor-pointer border-primary/40 bg-white shadow-xl shadow-primary/10 hover:border-primary/60 hover:shadow-2xl hover:shadow-primary/15 dark:bg-surface'
-          : 'cursor-default border-sage-muted/30 bg-white shadow-sm hover:border-sage-muted/50 hover:shadow-md dark:border-border dark:bg-surface'
+          ? 'cursor-pointer border-primary/40 bg-white shadow-xl shadow-primary/10 hover:border-primary/60 hover:shadow-2xl hover:shadow-primary/15'
+          : 'cursor-default border-sage-muted/30 bg-white shadow-sm hover:border-sage-muted/50 hover:shadow-md'
       )}
       onClick={isFirst ? onViewDetails : undefined}
     >
-      {/* #1 crown badge */}
       {isFirst && (
         <div className="absolute top-0 right-0 z-10">
           <div className="flex items-center gap-1 rounded-bl-2xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-lg">
@@ -485,24 +424,18 @@ function RankingCard({ apartment, onViewDetails }: {
       )}
 
       <div className="flex flex-col sm:flex-row">
-        {/* Image */}
+        {/* Gradient placeholder instead of real image */}
         <div className={cn(
-          'relative overflow-hidden',
-          isFirst ? 'h-52 sm:h-auto sm:w-72' : 'h-40 sm:h-auto sm:w-56'
+          'relative flex shrink-0 items-center justify-center overflow-hidden',
+          isFirst
+            ? 'h-44 bg-gradient-to-br from-primary/20 via-sage/10 to-cream-dark sm:h-auto sm:w-64'
+            : 'h-32 bg-gradient-to-br from-sage-muted/30 to-cream-dark sm:h-auto sm:w-48'
         )}>
-          <img
-            src={apartment.image}
-            alt={apartment.title}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white/10" />
-
+          <Home className={cn('text-primary/20', isFirst ? 'h-16 w-16' : 'h-12 w-12')} aria-hidden />
           {/* Rank badge */}
           <div className={cn(
-            'absolute top-3 left-3 flex h-10 w-10 items-center justify-center rounded-xl font-mono text-sm font-bold shadow-lg',
-            isFirst
-              ? 'bg-primary text-white'
-              : 'bg-white/95 text-charcoal backdrop-blur-sm dark:bg-surface-elevated dark:text-foreground'
+            'absolute top-3 left-3 flex h-9 w-9 items-center justify-center rounded-xl font-mono text-sm font-bold shadow-md',
+            isFirst ? 'bg-primary text-white' : 'bg-white/95 text-charcoal backdrop-blur-sm'
           )}>
             #{apartment.rank}
           </div>
@@ -511,43 +444,39 @@ function RankingCard({ apartment, onViewDetails }: {
         {/* Content */}
         <div className="flex flex-1 flex-col p-5 sm:p-6">
           <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <h3 className={cn(
-                  'font-semibold',
-                  isFirst ? 'text-xl text-foreground' : 'text-lg text-foreground'
-                )}>
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className={cn('font-semibold truncate', isFirst ? 'text-xl text-foreground' : 'text-lg text-foreground')}>
                   {apartment.title}
                 </h3>
                 <span className={cn(
-                  'rounded-full px-2.5 py-0.5 text-xs font-medium',
-                  isFirst
-                    ? 'bg-primary/10 text-primary'
-                    : 'bg-sage-muted/30 text-muted-foreground'
+                  'shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium',
+                  isFirst ? 'bg-primary/10 text-primary' : 'bg-sage-muted/30 text-muted-foreground'
                 )}>
                   {apartment.matchLabel}
                 </span>
               </div>
-              <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-                <MapPin className="h-3.5 w-3.5" aria-hidden />
-                {apartment.address}
-              </p>
+              {apartment.sourceUrl && (
+                <a
+                  href={apartment.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MapPin className="h-3 w-3 shrink-0" aria-hidden />
+                  <span className="truncate">View on Craigslist</span>
+                  <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
+                </a>
+              )}
             </div>
 
             {/* Score circle */}
-            <div className={cn(
-              'flex flex-col items-center justify-center rounded-2xl px-4 py-2',
-              isFirst ? 'bg-primary/10' : 'bg-sage-muted/20'
-            )}>
-              <span className={cn(
-                'font-mono text-2xl font-bold',
-                isFirst ? 'text-primary' : 'text-foreground'
-              )}>
+            <div className={cn('shrink-0 flex flex-col items-center justify-center rounded-2xl px-4 py-2', isFirst ? 'bg-primary/10' : 'bg-sage-muted/20')}>
+              <span className={cn('font-mono text-2xl font-bold', isFirst ? 'text-primary' : 'text-foreground')}>
                 {apartment.finalScore}
               </span>
-              <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                score
-              </span>
+              <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">score</span>
             </div>
           </div>
 
@@ -557,21 +486,31 @@ function RankingCard({ apartment, onViewDetails }: {
               <DollarSign className="h-3.5 w-3.5" aria-hidden />
               ${apartment.price.toLocaleString()}/mo
             </span>
-            <span className="flex items-center gap-1.5">
-              <Maximize2 className="h-3.5 w-3.5" aria-hidden />
-              {apartment.sqft.toLocaleString()} ft²
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Bed className="h-3.5 w-3.5" aria-hidden />
-              {apartment.bedrooms}bd / {apartment.bathrooms}ba
-            </span>
+            {apartment.sqft > 0 && (
+              <span className="flex items-center gap-1.5">
+                <Maximize2 className="h-3.5 w-3.5" aria-hidden />
+                {apartment.sqft.toLocaleString()} ft²
+              </span>
+            )}
+            {apartment.bedrooms > 0 && (
+              <span className="flex items-center gap-1.5">
+                <Bed className="h-3.5 w-3.5" aria-hidden />
+                {apartment.bedrooms}bd
+              </span>
+            )}
+            {apartment.bathrooms > 0 && (
+              <span className="flex items-center gap-1.5">
+                <Bath className="h-3.5 w-3.5" aria-hidden />
+                {apartment.bathrooms}ba
+              </span>
+            )}
             <span className="flex items-center gap-1.5">
               <Calendar className="h-3.5 w-3.5" aria-hidden />
               {apartment.leaseTermMonths} mo
             </span>
           </div>
 
-          {/* Score mini bars */}
+          {/* Mini score bars */}
           <div className="mt-4 grid grid-cols-4 gap-2">
             {[
               { label: 'Price', score: apartment.scoreBreakdown.priceScore },
@@ -584,12 +523,9 @@ function RankingCard({ apartment, onViewDetails }: {
                   <span>{label}</span>
                   <span className="font-mono font-medium">{score}</span>
                 </div>
-                <div className="mt-1 h-1.5 rounded-full bg-sage-muted/20 dark:bg-surface-overlay">
+                <div className="mt-1 h-1.5 rounded-full bg-sage-muted/20">
                   <div
-                    className={cn(
-                      'h-full rounded-full transition-all duration-500',
-                      score >= 90 ? 'bg-primary' : score >= 75 ? 'bg-sage' : score >= 60 ? 'bg-amber-500' : 'bg-red-400'
-                    )}
+                    className={cn('h-full rounded-full transition-all duration-500', score >= 90 ? 'bg-primary' : score >= 75 ? 'bg-sage' : score >= 60 ? 'bg-amber-500' : 'bg-red-400')}
                     style={{ width: `${score}%` }}
                   />
                 </div>
@@ -598,27 +534,28 @@ function RankingCard({ apartment, onViewDetails }: {
           </div>
 
           {/* Amenity chips */}
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {apartment.amenities.slice(0, isFirst ? 5 : 3).map((a) => {
-              const Icon = amenityIconMap[a] || CheckCircle2
-              return (
-                <span
-                  key={a}
-                  className="inline-flex items-center gap-1 rounded-md bg-sage-muted/15 px-2 py-1 text-[11px] font-medium text-muted-foreground dark:bg-surface-elevated"
-                >
-                  <Icon className="h-3 w-3" aria-hidden />
-                  {a}
+          {apartment.amenities.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {apartment.amenities.slice(0, isFirst ? 5 : 3).map((a) => {
+                const Icon = amenityIconMap[a] ?? CheckCircle2
+                return (
+                  <span
+                    key={a}
+                    className="inline-flex items-center gap-1 rounded-md bg-sage-muted/15 px-2 py-1 text-[11px] font-medium text-muted-foreground"
+                  >
+                    <Icon className="h-3 w-3" aria-hidden />
+                    {displayAmenity(a)}
+                  </span>
+                )
+              })}
+              {apartment.amenities.length > (isFirst ? 5 : 3) && (
+                <span className="rounded-md bg-sage-muted/15 px-2 py-1 text-[11px] font-medium text-muted-foreground">
+                  +{apartment.amenities.length - (isFirst ? 5 : 3)} more
                 </span>
-              )
-            })}
-            {apartment.amenities.length > (isFirst ? 5 : 3) && (
-              <span className="rounded-md bg-sage-muted/15 px-2 py-1 text-[11px] font-medium text-muted-foreground">
-                +{apartment.amenities.length - (isFirst ? 5 : 3)} more
-              </span>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
-          {/* Click hint for #1 */}
           {isFirst && (
             <motion.p
               initial={{ opacity: 0 }}
@@ -626,7 +563,7 @@ function RankingCard({ apartment, onViewDetails }: {
               transition={{ delay: 1 }}
               className="mt-4 flex items-center gap-1.5 text-xs font-medium text-primary"
             >
-              <Eye className="h-3.5 w-3.5" aria-hidden />
+              <Sparkles className="h-3.5 w-3.5" aria-hidden />
               Click to view full details
             </motion.p>
           )}
@@ -636,23 +573,125 @@ function RankingCard({ apartment, onViewDetails }: {
   )
 }
 
-/* ─── Main Results Page ────────────────── */
+/* ─── Loading Screen ───────────────────── */
 
-export function ResultsPage() {
-  const [showDetail, setShowDetail] = useState(false)
-  const [showConfetti, setShowConfetti] = useState(true)
-  const topApartment = apartments[0]
+function LoadingScreen({ status }: { status: JobStatus }) {
+  const steps = ['Searching listings...', 'Comparing options...', 'Scoring matches...']
+  const [step, setStep] = useState(0)
 
-  // Auto-dismiss confetti after 3s
-  useState(() => {
-    const timer = setTimeout(() => setShowConfetti(false), 3500)
-    return () => clearTimeout(timer)
-  })
+  useEffect(() => {
+    const interval = setInterval(() => setStep((s) => (s + 1) % steps.length), 2500)
+    return () => clearInterval(interval)
+  }, [steps.length])
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-cream via-cream to-sage-muted/10 dark-gradient-down">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-cream to-sage-muted/10 px-4 dark:bg-none dark:bg-background">
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+        className="text-primary"
+      >
+        <Loader2 className="h-12 w-12" aria-hidden />
+      </motion.div>
+
+      <motion.h2
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="mt-6 text-2xl font-bold text-foreground"
+      >
+        Finding your best matches
+      </motion.h2>
+
+      <AnimatePresence mode="wait">
+        <motion.p
+          key={step}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.3 }}
+          className="mt-2 text-muted-foreground"
+        >
+          {steps[step]}
+        </motion.p>
+      </AnimatePresence>
+
+      <div className="mt-8 flex items-center gap-2 rounded-full border border-sage-muted/40 bg-white/70 px-5 py-2.5 text-sm text-muted-foreground backdrop-blur-sm dark:border-border dark:bg-surface/80">
+        <Clock className="h-4 w-4 text-primary" aria-hidden />
+        This usually takes under 2 minutes
+        {status === 'PROCESSING' && (
+          <span className="ml-1 flex h-2 w-2 rounded-full bg-primary">
+            <span className="inline-flex h-2 w-2 animate-ping rounded-full bg-primary opacity-75" />
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/* ─── Main Page ────────────────────────── */
+
+export function ResultsPage() {
+  const { searchId } = useParams<{ searchId: string }>()
+  const navigate = useNavigate()
+
+  const [status, setStatus] = useState<JobStatus>('PENDING')
+  const [apartments, setApartments] = useState<Apartment[]>([])
+  const [totalFound, setTotalFound] = useState(0)
+  const [showDetail, setShowDetail] = useState(false)
+  const [showConfetti, setShowConfetti] = useState(false)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    if (!searchId) {
+      navigate('/search')
+      return
+    }
+
+    const poll = async () => {
+      try {
+        const { data } = await axios.get<SearchResultsDto>(
+          `http://localhost:8080/api/v1/search/${searchId}/results`
+        )
+
+        setStatus(data.status)
+
+        if (data.status === 'COMPLETED') {
+          if (intervalRef.current) clearInterval(intervalRef.current)
+          const mapped = (data.apartments ?? []).map(mapDto)
+          setApartments(mapped)
+          setTotalFound(data.totalApartmentsFound ?? mapped.length)
+          setShowConfetti(true)
+          setTimeout(() => setShowConfetti(false), 3500)
+        } else if (data.status === 'FAILED') {
+          if (intervalRef.current) clearInterval(intervalRef.current)
+          navigate('/search')
+        }
+      } catch {
+        if (intervalRef.current) clearInterval(intervalRef.current)
+        navigate('/search')
+      }
+    }
+
+    poll() // immediate first check
+    intervalRef.current = setInterval(poll, 5000)
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
+  }, [searchId, navigate])
+
+  /* ── Loading ── */
+  if (status !== 'COMPLETED') {
+    return <LoadingScreen status={status} />
+  }
+
+  const topApartment = apartments[0]
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-cream via-cream to-sage-muted/10">
       {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-sage-muted/30 bg-cream/95 backdrop-blur supports-[backdrop-filter]:bg-cream/80 dark:border-border dark:bg-surface/95 dark:supports-[backdrop-filter]:bg-surface/80">
+      <header className="sticky top-0 z-30 border-b border-sage-muted/30 bg-cream/95 backdrop-blur supports-[backdrop-filter]:bg-cream/80">
         <div className="container mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
           <Link
             to="/search"
@@ -675,7 +714,7 @@ export function ResultsPage() {
       </header>
 
       <main className="container mx-auto max-w-5xl px-4 py-8 sm:py-12">
-        {/* ─── Celebration Header ──────────── */}
+        {/* Celebration header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -701,18 +740,23 @@ export function ResultsPage() {
           >
             We found your next home
           </motion.h1>
+
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6 }}
             className="mx-auto mt-3 max-w-lg text-lg text-muted-foreground"
           >
-            <span className="font-mono font-semibold text-primary">{apartments.length}</span>{' '}
-            apartments ranked by your priorities.{' '}
-            <span className="font-medium text-foreground">{topApartment.title}</span> scored highest.
+            <span className="font-mono font-semibold text-primary">{totalFound}</span>{' '}
+            {totalFound === 1 ? 'apartment' : 'apartments'} ranked by your priorities.
+            {topApartment && (
+              <>
+                {' '}
+                <span className="font-medium text-foreground">{topApartment.title}</span> scored highest.
+              </>
+            )}
           </motion.p>
 
-          {/* Trust strip */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -721,11 +765,11 @@ export function ResultsPage() {
           >
             <span className="flex items-center gap-1">
               <Shield className="h-3 w-3 text-primary" aria-hidden />
-              Verified listings
+              Live listings
             </span>
             <span className="flex items-center gap-1">
               <TrendingUp className="h-3 w-3 text-primary" aria-hidden />
-              47 sources scanned
+              Scored for your priorities
             </span>
             <span className="flex items-center gap-1">
               <Star className="h-3 w-3 text-primary" aria-hidden />
@@ -734,46 +778,59 @@ export function ResultsPage() {
           </motion.div>
         </motion.div>
 
-        {/* ─── Apartment List ──────────────── */}
-        <div className="mt-10 space-y-4">
-          {apartments.map((apt) => (
-            <RankingCard
-              key={apt.id}
-              apartment={apt}
-              onViewDetails={apt.rank === 1 ? () => setShowDetail(true) : undefined}
-            />
-          ))}
-        </div>
+        {/* Results list */}
+        {apartments.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="mt-16 flex flex-col items-center gap-4 text-center"
+          >
+            <AlertCircle className="h-12 w-12 text-muted-foreground/40" aria-hidden />
+            <p className="text-lg font-medium text-foreground">No listings found</p>
+            <p className="text-muted-foreground">Try adjusting your filters or search again.</p>
+            <Button size="lg" className="mt-2" asChild>
+              <Link to="/search">Adjust search</Link>
+            </Button>
+          </motion.div>
+        ) : (
+          <div className="mt-10 space-y-4">
+            {apartments.map((apt) => (
+              <RankingCard
+                key={apt.id}
+                apartment={apt}
+                onViewDetails={apt.rank === 1 ? () => setShowDetail(true) : undefined}
+              />
+            ))}
+          </div>
+        )}
 
-        {/* ─── Bottom CTA ──────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mt-12 rounded-2xl border border-sage-muted/30 bg-white/60 p-8 text-center backdrop-blur-sm dark:border-border dark:bg-surface/60"
-        >
-          <p className="text-lg font-semibold text-foreground">
-            Not quite right?
-          </p>
-          <p className="mt-1 text-muted-foreground">
-            Adjust your priorities and search again — it&apos;s always free.
-          </p>
-          <Button size="lg" className="mt-5 h-14 px-10 text-base" asChild>
-            <Link to="/search" className="inline-flex items-center gap-2">
-              Refine search
-              <ArrowLeft className="h-4 w-4 rotate-180" aria-hidden />
-            </Link>
-          </Button>
-        </motion.div>
+        {/* Bottom CTA */}
+        {apartments.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mt-12 rounded-2xl border border-sage-muted/30 bg-white/60 p-8 text-center backdrop-blur-sm"
+          >
+            <p className="text-lg font-semibold text-foreground">Not quite right?</p>
+            <p className="mt-1 text-muted-foreground">
+              Adjust your priorities and search again — it&apos;s always free.
+            </p>
+            <Button size="lg" className="mt-5 h-14 px-10 text-base" asChild>
+              <Link to="/search" className="inline-flex items-center gap-2">
+                Refine search
+                <ArrowLeft className="h-4 w-4 rotate-180" aria-hidden />
+              </Link>
+            </Button>
+          </motion.div>
+        )}
       </main>
 
-      {/* ─── Detail Modal for #1 ─────────── */}
+      {/* Detail modal for #1 */}
       <AnimatePresence>
-        {showDetail && (
-          <ApartmentDetailModal
-            apartment={topApartment}
-            onClose={() => setShowDetail(false)}
-          />
+        {showDetail && topApartment && (
+          <ApartmentDetailModal apartment={topApartment} onClose={() => setShowDetail(false)} />
         )}
       </AnimatePresence>
     </div>

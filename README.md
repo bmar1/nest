@@ -258,8 +258,10 @@ See [`agent/CODESTYLE.md`](agent/CODESTYLE.md) for coding standards.
 - [x] React frontend with Tailwind CSS
 - [x] Docker & Docker Compose setup
 - [x] Kubernetes manifests
-- [ ] Craigslist scraper implementation
-- [ ] RabbitMQ async job processing
+- [x] Craigslist scraper (concurrent detail fetches, amenity normalisation)
+- [x] Async job processing (`@Async` + `@EnableAsync`, no broker needed)
+- [x] Bedrooms & bathrooms filters (V2 migration, scraper parsing, pre-score filtering)
+- [x] Live results polling (5 s interval, loading overlay, dark-mode support)
 - [ ] Email notifications
 - [ ] User authentication (JWT)
 - [ ] Saved searches
@@ -290,6 +292,6 @@ MIT License - see LICENSE for details.
 
 ## 📧 Contact
 
-Built with ☕, late nights, and a deep hatred for apartment hunting.
+Built with ☕, late nights, a deep hatred for apartment hunting, and a little help from Cursor Agent 🤖.
 
 For questions or issues, please open a GitHub issue.

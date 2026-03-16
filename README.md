@@ -1,4 +1,4 @@
-# <img src="C:\Users\Bilal\Desktop\nest\nestapp\src\nestapp-frontend\nestapp\publicnest-logo-transparent-cropped.png" alt="Icon" width="27" height="27"> Nest
+# <img src="\src\nestapp-frontend\nestapp\public\nest-logo-transparent-cropped.png" alt="Icon" width="27" height="27"> Nest
 
 **Find your dream home cheaper & faster and without the hassle.**
 

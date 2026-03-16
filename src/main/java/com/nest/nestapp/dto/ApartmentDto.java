@@ -23,6 +23,8 @@ public class ApartmentDto {
     private List<String> amenities;
     private Integer leaseTermMonths;
     private String sourceUrl;
+    private String imageUrl;
+    private List<String> imageUrls;
     private BigDecimal finalScore;
     private ScoreBreakdownDto scoreBreakdown;
 }

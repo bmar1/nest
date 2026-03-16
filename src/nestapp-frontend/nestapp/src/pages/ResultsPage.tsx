@@ -2,10 +2,13 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import axios from 'axios'
 import { motion, AnimatePresence, useInView } from 'framer-motion'
+import type { MouseEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import {
   ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
   Home,
   Trophy,
   MapPin,
@@ -57,6 +60,8 @@ interface ApartmentDto {
   amenities: string[]
   leaseTermMonths: number
   sourceUrl: string
+  imageUrl?: string
+  imageUrls?: string[]
   finalScore: number
   scoreBreakdown: ApiScoreBreakdown
 }
@@ -91,6 +96,8 @@ interface Apartment {
   amenities: string[]
   leaseTermMonths: number
   sourceUrl: string
+  imageUrl?: string
+  imageUrls: string[]
   finalScore: number
   matchLabel: string
   scoreBreakdown: ScoreBreakdown
@@ -128,6 +135,8 @@ function mapDto(dto: ApartmentDto, index: number): Apartment {
     amenities: dto.amenities ?? [],
     leaseTermMonths: dto.leaseTermMonths ?? 12,
     sourceUrl: dto.sourceUrl,
+    imageUrl: dto.imageUrl,
+    imageUrls: [dto.imageUrl, ...(dto.imageUrls ?? [])].filter((value, index, array): value is string => Boolean(value) && array.indexOf(value) === index),
     finalScore: Math.round(Number(dto.finalScore)),
     matchLabel: getMatchLabel(Math.round(Number(dto.finalScore))),
     scoreBreakdown: normaliseBreakdown(dto.scoreBreakdown ?? { priceScore: 0, spaceScore: 0, amenitiesScore: 0, leaseScore: 0 }),
@@ -157,6 +166,83 @@ const amenityLabel: Record<string, string> = {
 
 function displayAmenity(a: string) {
   return amenityLabel[a] ?? a
+}
+
+const RESULT_CARD_IMAGES = [
+  '/apartment-modern.png',
+  '/apartment-hero.png',
+  '/apartment-studio.png',
+  '/hero-apartment.png',
+] as const
+
+function hashString(value: string): number {
+  let hash = 0
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0
+  }
+  return hash
+}
+
+function getListingSourceName(url: string): string {
+  if (url.includes('kijiji.ca')) return 'Kijiji'
+  if (url.includes('craigslist.org')) return 'Craigslist'
+  return 'Source'
+}
+
+function getApartmentImage(apartment: Apartment): string {
+  if (apartment.imageUrl) return apartment.imageUrl
+  const seed = `${apartment.sourceUrl}|${apartment.title}|${apartment.rank}`
+  return RESULT_CARD_IMAGES[hashString(seed) % RESULT_CARD_IMAGES.length]
+}
+
+function getApartmentImages(apartment: Apartment): string[] {
+  const apiImages = apartment.imageUrls.filter(Boolean)
+  if (apiImages.length > 0) {
+    return apiImages
+  }
+  return [getApartmentImage(apartment)]
+}
+
+function getScoreNarrative(apartment: Apartment): string {
+  const dimensions = [
+    {
+      key: 'price',
+      score: apartment.scoreBreakdown.priceScore,
+      good: 'the price is very competitive for your budget',
+      bad: 'the price runs a bit high for your target range',
+    },
+    {
+      key: 'space',
+      score: apartment.scoreBreakdown.spaceScore,
+      good: 'the square footage lines up well with your space needs',
+      bad: 'the space is a little tighter than your ideal',
+    },
+    {
+      key: 'amenities',
+      score: apartment.scoreBreakdown.amenitiesScore,
+      good: 'the amenity mix fits your preferences nicely',
+      bad: 'the amenities are more limited than your stronger matches',
+    },
+    {
+      key: 'lease',
+      score: apartment.scoreBreakdown.leaseScore,
+      good: 'the lease terms look flexible for your search',
+      bad: 'the lease terms are less flexible than your target',
+    },
+  ].sort((a, b) => b.score - a.score)
+
+  const best = dimensions[0]
+  const weakest = dimensions[dimensions.length - 1]
+
+  if (!best || !weakest) {
+    return 'This listing is a balanced match across the factors you asked us to compare.'
+  }
+
+  if (best.score - weakest.score <= 10) {
+    return 'This listing is fairly balanced across price, space, amenities, and lease flexibility for your search.'
+  }
+
+  return `This one stands out because ${best.good}, but ${weakest.bad}.`
 }
 
 const CONFETTI_DOTS = Array.from({ length: 20 }, (_, i) => ({
@@ -232,6 +318,84 @@ function ConfettiDots() {
   )
 }
 
+function ListingImageCarousel({
+  apartment,
+  className,
+  showControls = true,
+}: {
+  apartment: Apartment
+  className?: string
+  showControls?: boolean
+}) {
+  const images = getApartmentImages(apartment)
+  const [index, setIndex] = useState(0)
+  const activeImage = images[index] ?? images[0]
+  const fallbackImage = RESULT_CARD_IMAGES[hashString(apartment.sourceUrl || apartment.title) % RESULT_CARD_IMAGES.length]
+
+  const goToPrevious = (event?: MouseEvent) => {
+    event?.stopPropagation()
+    setIndex((current) => (current === 0 ? images.length - 1 : current - 1))
+  }
+
+  const goToNext = (event?: MouseEvent) => {
+    event?.stopPropagation()
+    setIndex((current) => (current === images.length - 1 ? 0 : current + 1))
+  }
+
+  return (
+    <div className={cn('relative overflow-hidden', className)}>
+      <img
+        src={activeImage}
+        alt={apartment.title}
+        className="h-full w-full object-cover"
+        onError={(event) => {
+          event.currentTarget.onerror = null
+          event.currentTarget.src = fallbackImage
+        }}
+      />
+      <div className="absolute inset-0 bg-linear-to-t from-black/35 via-black/5 to-transparent" />
+
+      {showControls && images.length > 1 && (
+        <>
+          <button
+            type="button"
+            onClick={goToPrevious}
+            className="absolute left-3 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition hover:bg-black/60"
+            aria-label="Previous image"
+          >
+            <ChevronLeft className="h-4 w-4" aria-hidden />
+          </button>
+          <button
+            type="button"
+            onClick={goToNext}
+            className="absolute right-3 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition hover:bg-black/60"
+            aria-label="Next image"
+          >
+            <ChevronRight className="h-4 w-4" aria-hidden />
+          </button>
+          <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5">
+            {images.map((image, imageIndex) => (
+              <button
+                type="button"
+                key={`${image}-${imageIndex}`}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setIndex(imageIndex)
+                }}
+                className={cn(
+                  'h-1.5 rounded-full transition-all',
+                  imageIndex === index ? 'w-5 bg-white' : 'w-1.5 bg-white/55'
+                )}
+                aria-label={`View image ${imageIndex + 1}`}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 /* ─── Detail Modal ─────────────────────── */
 
 function ApartmentDetailModal({ apartment, onClose }: { apartment: Apartment; onClose: () => void }) {
@@ -249,7 +413,7 @@ function ApartmentDetailModal({ apartment, onClose }: { apartment: Apartment; on
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-cream shadow-2xl dark:bg-background"
+          className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-cream shadow-2xl dark:bg-card"
           onClick={(e) => e.stopPropagation()}
         >
           <button
@@ -260,10 +424,9 @@ function ApartmentDetailModal({ apartment, onClose }: { apartment: Apartment; on
             <X className="h-5 w-5 text-charcoal" />
           </button>
 
-          {/* Hero banner — gradient placeholder */}
-          <div className="relative flex h-48 w-full items-center justify-center overflow-hidden rounded-t-3xl bg-gradient-to-br from-primary/20 via-sage/10 to-cream-dark sm:h-64">
-            <Home className="h-24 w-24 text-primary/20" aria-hidden />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+          <div className="relative h-48 w-full overflow-hidden rounded-t-3xl sm:h-64">
+            <ListingImageCarousel apartment={apartment} className="h-full w-full" />
+            <div className="absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-transparent" />
             <div className="absolute bottom-4 left-6 right-6">
               <div className="flex items-center gap-2">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-lg">
@@ -280,7 +443,7 @@ function ApartmentDetailModal({ apartment, onClose }: { apartment: Apartment; on
           <div className="p-6 sm:p-8">
             {/* Stats */}
             <div className="flex flex-wrap gap-4">
-              <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm">
+              <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm dark:bg-surface-elevated">
                 <DollarSign className="h-4 w-4 text-primary" aria-hidden />
                 <div>
                   <p className="font-mono text-xl font-bold text-primary">${apartment.price.toLocaleString()}</p>
@@ -288,7 +451,7 @@ function ApartmentDetailModal({ apartment, onClose }: { apartment: Apartment; on
                 </div>
               </div>
               {apartment.sqft > 0 && (
-                <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm">
+                <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm dark:bg-surface-elevated">
                   <Maximize2 className="h-4 w-4 text-primary" aria-hidden />
                   <div>
                     <p className="font-mono text-xl font-bold text-foreground">{apartment.sqft.toLocaleString()}</p>
@@ -297,7 +460,7 @@ function ApartmentDetailModal({ apartment, onClose }: { apartment: Apartment; on
                 </div>
               )}
               {apartment.bedrooms > 0 && (
-                <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm">
+                <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm dark:bg-surface-elevated">
                   <Bed className="h-4 w-4 text-primary" aria-hidden />
                   <div>
                     <p className="font-mono text-xl font-bold text-foreground">{apartment.bedrooms}bd</p>
@@ -306,7 +469,7 @@ function ApartmentDetailModal({ apartment, onClose }: { apartment: Apartment; on
                 </div>
               )}
               {apartment.bathrooms > 0 && (
-                <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm">
+                <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm dark:bg-surface-elevated">
                   <Bath className="h-4 w-4 text-primary" aria-hidden />
                   <div>
                     <p className="font-mono text-xl font-bold text-foreground">{apartment.bathrooms}ba</p>
@@ -314,7 +477,7 @@ function ApartmentDetailModal({ apartment, onClose }: { apartment: Apartment; on
                   </div>
                 </div>
               )}
-              <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm">
+              <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm dark:bg-surface-elevated">
                 <Calendar className="h-4 w-4 text-primary" aria-hidden />
                 <div>
                   <p className="font-mono text-xl font-bold text-foreground">{apartment.leaseTermMonths}</p>
@@ -329,7 +492,7 @@ function ApartmentDetailModal({ apartment, onClose }: { apartment: Apartment; on
                 <BarChart3 className="h-5 w-5 text-primary" aria-hidden />
                 Score Breakdown
               </h3>
-              <Card className="mt-3 border-sage-muted/30 bg-white/70 p-5">
+              <Card className="mt-3 border-sage-muted/30 bg-white/70 p-5 dark:bg-surface-elevated/90">
                 <div className="mb-4 flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Overall Match</span>
                   <span className="font-mono text-3xl font-bold text-primary">
@@ -343,6 +506,9 @@ function ApartmentDetailModal({ apartment, onClose }: { apartment: Apartment; on
                   <ScoreBar label="Amenities" score={apartment.scoreBreakdown.amenitiesScore} icon={Sparkles} delay={0.2} />
                   <ScoreBar label="Lease" score={apartment.scoreBreakdown.leaseScore} icon={Clock} delay={0.3} />
                 </div>
+                <p className="mt-4 rounded-2xl border border-primary/10 bg-primary/5 px-4 py-3 text-sm leading-6 text-muted-foreground dark:border-border dark:bg-background/60">
+                  {getScoreNarrative(apartment)}
+                </p>
               </Card>
             </div>
 
@@ -398,6 +564,8 @@ function RankingCard({ apartment, onViewDetails }: {
   const isFirst = apartment.rank === 1
   const ref = useRef<HTMLDivElement>(null)
   const isInView = useInView(ref, { once: true, margin: '-40px' })
+  const sourceName = getListingSourceName(apartment.sourceUrl)
+  const isClickable = Boolean(onViewDetails)
 
   return (
     <motion.div
@@ -405,16 +573,16 @@ function RankingCard({ apartment, onViewDetails }: {
       initial={{ opacity: 0, y: 30 }}
       animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
       transition={{ duration: 0.5, delay: apartment.rank * 0.07 }}
-      whileHover={isFirst ? { scale: 1.01, y: -4 } : { scale: 1.005, y: -2 }}
+      whileHover={isClickable ? { scale: 1.01, y: -4 } : { scale: 1.005, y: -2 }}
       className={cn(
         'group relative overflow-hidden rounded-2xl border-2 transition-all duration-300',
-        isFirst
-          ? 'cursor-pointer border-primary/40 bg-white shadow-xl shadow-primary/10 hover:border-primary/60 hover:shadow-2xl hover:shadow-primary/15'
-          : 'cursor-default border-sage-muted/30 bg-white shadow-sm hover:border-sage-muted/50 hover:shadow-md'
+        apartment.rank === 1
+          ? 'cursor-pointer border-primary/40 bg-white shadow-xl shadow-primary/10 hover:border-primary/60 hover:shadow-2xl hover:shadow-primary/15 dark:bg-card dark:shadow-black/20'
+          : 'cursor-pointer border-sage-muted/30 bg-white shadow-sm hover:border-sage-muted/50 hover:shadow-md dark:bg-card dark:shadow-black/10'
       )}
-      onClick={isFirst ? onViewDetails : undefined}
+      onClick={onViewDetails}
     >
-      {isFirst && (
+      {apartment.rank === 1 && (
         <div className="absolute top-0 right-0 z-10">
           <div className="flex items-center gap-1 rounded-bl-2xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-lg">
             <Trophy className="h-3.5 w-3.5" aria-hidden />
@@ -424,18 +592,19 @@ function RankingCard({ apartment, onViewDetails }: {
       )}
 
       <div className="flex flex-col sm:flex-row">
-        {/* Gradient placeholder instead of real image */}
         <div className={cn(
-          'relative flex shrink-0 items-center justify-center overflow-hidden',
+          'relative shrink-0 overflow-hidden',
           isFirst
-            ? 'h-44 bg-gradient-to-br from-primary/20 via-sage/10 to-cream-dark sm:h-auto sm:w-64'
-            : 'h-32 bg-gradient-to-br from-sage-muted/30 to-cream-dark sm:h-auto sm:w-48'
+            ? 'h-44 sm:h-auto sm:w-64'
+            : 'h-32 sm:h-auto sm:w-48'
         )}>
-          <Home className={cn('text-primary/20', isFirst ? 'h-16 w-16' : 'h-12 w-12')} aria-hidden />
+          <ListingImageCarousel apartment={apartment} className="h-full w-full transition-transform duration-500 group-hover:scale-105" />
           {/* Rank badge */}
           <div className={cn(
             'absolute top-3 left-3 flex h-9 w-9 items-center justify-center rounded-xl font-mono text-sm font-bold shadow-md',
-            isFirst ? 'bg-primary text-white' : 'bg-white/95 text-charcoal backdrop-blur-sm'
+            apartment.rank === 1
+              ? 'bg-white/95 text-primary backdrop-blur-sm dark:bg-card/95 dark:text-primary'
+              : 'bg-white/95 text-slate-900 backdrop-blur-sm dark:bg-card/95 dark:text-primary'
           )}>
             #{apartment.rank}
           </div>
@@ -446,12 +615,12 @@ function RankingCard({ apartment, onViewDetails }: {
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className={cn('font-semibold truncate', isFirst ? 'text-xl text-foreground' : 'text-lg text-foreground')}>
+                <h3 className={cn('font-semibold truncate', apartment.rank === 1 ? 'text-xl text-foreground' : 'text-lg text-foreground')}>
                   {apartment.title}
                 </h3>
                 <span className={cn(
                   'shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium',
-                  isFirst ? 'bg-primary/10 text-primary' : 'bg-sage-muted/30 text-muted-foreground'
+                  apartment.rank === 1 ? 'bg-primary/10 text-primary' : 'bg-sage-muted/30 text-muted-foreground dark:bg-accent dark:text-foreground'
                 )}>
                   {apartment.matchLabel}
                 </span>
@@ -465,15 +634,15 @@ function RankingCard({ apartment, onViewDetails }: {
                   onClick={(e) => e.stopPropagation()}
                 >
                   <MapPin className="h-3 w-3 shrink-0" aria-hidden />
-                  <span className="truncate">View on Craigslist</span>
+                  <span className="truncate">View on {sourceName}</span>
                   <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
                 </a>
               )}
             </div>
 
             {/* Score circle */}
-            <div className={cn('shrink-0 flex flex-col items-center justify-center rounded-2xl px-4 py-2', isFirst ? 'bg-primary/10' : 'bg-sage-muted/20')}>
-              <span className={cn('font-mono text-2xl font-bold', isFirst ? 'text-primary' : 'text-foreground')}>
+            <div className={cn('shrink-0 flex flex-col items-center justify-center rounded-2xl px-4 py-2', apartment.rank === 1 ? 'bg-primary/10' : 'bg-sage-muted/20')}>
+              <span className={cn('font-mono text-2xl font-bold', apartment.rank === 1 ? 'text-primary' : 'text-foreground')}>
                 {apartment.finalScore}
               </span>
               <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">score</span>
@@ -533,10 +702,14 @@ function RankingCard({ apartment, onViewDetails }: {
             ))}
           </div>
 
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">
+            {getScoreNarrative(apartment)}
+          </p>
+
           {/* Amenity chips */}
           {apartment.amenities.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
-              {apartment.amenities.slice(0, isFirst ? 5 : 3).map((a) => {
+              {apartment.amenities.slice(0, apartment.rank === 1 ? 5 : 3).map((a) => {
                 const Icon = amenityIconMap[a] ?? CheckCircle2
                 return (
                   <span
@@ -548,15 +721,15 @@ function RankingCard({ apartment, onViewDetails }: {
                   </span>
                 )
               })}
-              {apartment.amenities.length > (isFirst ? 5 : 3) && (
+              {apartment.amenities.length > (apartment.rank === 1 ? 5 : 3) && (
                 <span className="rounded-md bg-sage-muted/15 px-2 py-1 text-[11px] font-medium text-muted-foreground">
-                  +{apartment.amenities.length - (isFirst ? 5 : 3)} more
+                  +{apartment.amenities.length - (apartment.rank === 1 ? 5 : 3)} more
                 </span>
               )}
             </div>
           )}
 
-          {isFirst && (
+          {isClickable && (
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -585,7 +758,7 @@ function LoadingScreen({ status }: { status: JobStatus }) {
   }, [steps.length])
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-cream to-sage-muted/10 px-4 dark:bg-none dark:bg-background">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-linear-to-b from-cream to-sage-muted/10 px-4 dark:bg-none dark:bg-background">
       <motion.div
         animate={{ rotate: 360 }}
         transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
@@ -638,7 +811,7 @@ export function ResultsPage() {
   const [status, setStatus] = useState<JobStatus>('PENDING')
   const [apartments, setApartments] = useState<Apartment[]>([])
   const [totalFound, setTotalFound] = useState(0)
-  const [showDetail, setShowDetail] = useState(false)
+  const [selectedApartment, setSelectedApartment] = useState<Apartment | null>(null)
   const [showConfetti, setShowConfetti] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -689,9 +862,9 @@ export function ResultsPage() {
   const topApartment = apartments[0]
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-cream via-cream to-sage-muted/10">
+    <div className="min-h-screen bg-linear-to-b from-cream via-cream to-sage-muted/10 dark:from-background dark:via-background dark:to-accent/30">
       {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-sage-muted/30 bg-cream/95 backdrop-blur supports-[backdrop-filter]:bg-cream/80">
+      <header className="sticky top-0 z-30 border-b border-sage-muted/30 bg-cream/95 backdrop-blur supports-backdrop-filter:bg-cream/80 dark:border-border dark:bg-background/90 dark:supports-backdrop-filter:bg-background/80">
         <div className="container mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
           <Link
             to="/search"
@@ -799,7 +972,7 @@ export function ResultsPage() {
               <RankingCard
                 key={apt.id}
                 apartment={apt}
-                onViewDetails={apt.rank === 1 ? () => setShowDetail(true) : undefined}
+                onViewDetails={() => setSelectedApartment(apt)}
               />
             ))}
           </div>
@@ -811,7 +984,7 @@ export function ResultsPage() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="mt-12 rounded-2xl border border-sage-muted/30 bg-white/60 p-8 text-center backdrop-blur-sm"
+            className="mt-12 rounded-2xl border border-sage-muted/30 bg-white/60 p-8 text-center backdrop-blur-sm dark:border-border dark:bg-card/90"
           >
             <p className="text-lg font-semibold text-foreground">Not quite right?</p>
             <p className="mt-1 text-muted-foreground">
@@ -829,8 +1002,8 @@ export function ResultsPage() {
 
       {/* Detail modal for #1 */}
       <AnimatePresence>
-        {showDetail && topApartment && (
-          <ApartmentDetailModal apartment={topApartment} onClose={() => setShowDetail(false)} />
+        {selectedApartment && (
+          <ApartmentDetailModal apartment={selectedApartment} onClose={() => setSelectedApartment(null)} />
         )}
       </AnimatePresence>
     </div>

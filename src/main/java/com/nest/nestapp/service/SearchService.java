@@ -156,6 +156,8 @@ public class SearchService {
                                 .amenities(apt.getAmenities())
                                 .leaseTermMonths(apt.getLeaseTermMonths())
                                 .sourceUrl(apt.getSourceUrl())
+                                .imageUrl(apt.getImageUrl())
+                                .imageUrls(apt.getImageUrls())
                                 .finalScore(score.getFinalScore())
                                 .scoreBreakdown(ScoreBreakdownDto.builder()
                                         .priceScore(score.getPriceScore())

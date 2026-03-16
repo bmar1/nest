@@ -292,6 +292,6 @@ MIT License - see LICENSE for details.
 
 ## 📧 Contact
 
-Built with ☕, late nights, a deep hatred for apartment hunting, and a little help from Cursor Agent 🤖.
+Built with ☕, late nights, a deep hatred for apartment hunting, and a little help from Cursor Agent.
 
 For questions or issues, please open a GitHub issue.

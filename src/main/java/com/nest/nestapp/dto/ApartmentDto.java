@@ -19,6 +19,7 @@ public class ApartmentDto {
     private Integer price;
     private Integer sqft;
     private Integer bedrooms;
+    private Integer bathrooms;
     private List<String> amenities;
     private Integer leaseTermMonths;
     private String sourceUrl;

@@ -130,14 +130,9 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Dark mode ambient background gradients */
-.dark body,
+/* Dark mode ambient background gradients — only active under .dark */
 .dark .dark-ambient {
   background: linear-gradient(145deg, #0c0e14 0%, #111320 30%, #0e1018 60%, #0c0e14 100%);
-}
-
-.dark-mesh {
-  background: var(--background);
 }
 
 .dark .dark-mesh {
@@ -146,10 +141,6 @@ body {
     radial-gradient(ellipse at 85% 20%, rgba(25, 35, 50, 0.3) 0%, transparent 40%),
     radial-gradient(ellipse at 50% 80%, rgba(20, 25, 40, 0.35) 0%, transparent 50%),
     linear-gradient(180deg, #0c0e14 0%, #10131e 50%, #0c0e14 100%);
-}
-
-.dark-gradient-down {
-  background: var(--background);
 }
 
 .dark .dark-gradient-down {

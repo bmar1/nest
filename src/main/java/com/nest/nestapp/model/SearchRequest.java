@@ -34,6 +34,12 @@ public class SearchRequest {
     @Column(name = "min_sqft", nullable = false)
     private Integer minSqft;
 
+    @Column(name = "desired_bedrooms")
+    private Integer desiredBedrooms;
+
+    @Column(name = "desired_bathrooms")
+    private Integer desiredBathrooms;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "desired_amenities", columnDefinition = "jsonb")
     private List<String> desiredAmenities;

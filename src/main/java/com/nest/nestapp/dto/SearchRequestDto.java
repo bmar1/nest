@@ -27,6 +27,12 @@ public class SearchRequestDto {
     @Min(value = 300, message = "Min square footage must be at least 300")
     private Integer minSqft;
 
+    @Min(value = 1, message = "Desired bedrooms must be at least 1")
+    private Integer desiredBedrooms;
+
+    @Min(value = 1, message = "Desired bathrooms must be at least 1")
+    private Integer desiredBathrooms;
+
     private List<String> desiredAmenities;
 
     @Min(value = 1, message = "Max lease months must be at least 1")

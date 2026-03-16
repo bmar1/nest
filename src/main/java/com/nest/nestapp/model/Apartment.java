@@ -44,6 +44,8 @@ public class Apartment {
 
     private Integer bedrooms;
 
+    private Integer bathrooms;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private List<String> amenities;

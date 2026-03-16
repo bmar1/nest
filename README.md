@@ -2,20 +2,31 @@
 
 **Find your dream home cheaper & faster and without the hassle.**
 
-Nest is an intelligent apartment search platform that scrapes Craigslist Toronto (soon to be other websites), aggregates listings, and ranks apartments based on your priorities—not generic algorithms. Tell us what matters (Budget, Space, Amenities, or Balanced), and we deliver scored results.
+Nest is an apartment search platform that scrapes live listings, reuses fresh cached listings from PostgreSQL, deduplicates results across sources, and ranks apartments based on your priorities instead of generic sort order. Tell Nest what matters most, and it returns scored results with source links, images, and transparent score breakdowns.
 
 ## 📋 Features
 
-- **Priority-Based Matching**: Choose Budget/Space/Amenities/Balanced priority
+- **Priority-Based Matching**: Choose `BUDGET`, `SPACE`, `AMENITIES`, or `BALANCED`
+- **Multi-Source Search**: Pulls listings from `Craigslist Toronto` and `Kijiji`
 - **Smart Scoring Algorithm**: 0-100 score based on price, space, amenities, and lease flexibility
+- **Fresh Listing Cache**: Reuses non-expired listings stored in PostgreSQL for faster follow-up searches
+- **Deduped Results**: Merges live + cached listings and removes duplicates before scoring
+- **Real Listing Images**: Returns real source images when available and shows them in the results UI
 - **Microservices Architecture**: Spring Boot REST API + React frontend
-- **Kubernetes-Ready**: Deploy to DigitalOcean Kubernetes with included manifests
 - **Docker Support**: Full containerization with Docker Compose for local development
+- **Kubernetes-Ready**: Deploy to DigitalOcean Kubernetes with included manifests
 
 ## 🏗️ Architecture
 
 ```
 React Frontend → Spring Boot REST API → PostgreSQL
+
+Search flow:
+1. Frontend submits a search request
+2. Backend asynchronously scrapes live sources
+3. Backend pulls fresh non-expired cached listings from PostgreSQL
+4. Listings are normalized, deduplicated, filtered, and scored
+5. Frontend polls for results and renders ranked cards with score explanations
 ```
 
 **Tech Stack**:
@@ -23,6 +34,7 @@ React Frontend → Spring Boot REST API → PostgreSQL
 - Frontend: React 19 + TypeScript + Vite
 - Database: PostgreSQL 16
 - Scraping: Jsoup
+- Live Sources: Craigslist Toronto + Kijiji
 - Deployment: Docker + Kubernetes (DOKS)
 
 ## 🚀 Quick Start
@@ -37,13 +49,37 @@ React Frontend → Spring Boot REST API → PostgreSQL
 ### Local Development with Docker Compose
 
 ```bash
-# Start all services (PostgreSQL + API + Frontend)
-docker-compose up --build
+# Start all services in the background
+docker compose up -d --build
 
-# Access the application
-# Frontend: http://localhost
-# API: http://localhost:8080
-# Health check: http://localhost:8080/api/v1/health
+# Check container status
+docker compose ps
+
+# Tail logs
+docker compose logs -f api
+docker compose logs -f frontend
+docker compose logs -f postgres
+
+# Stop everything
+docker compose down
+```
+
+**Services**
+- Frontend: `http://localhost`
+- API: `http://localhost:8080`
+- Health check: `http://localhost:8080/api/v1/health`
+- PostgreSQL: `localhost:5432`
+
+**Default local database credentials**
+- Database: `nest`
+- Username: `postgres`
+- Password: `postgres`
+
+**Useful reset**
+```bash
+# Rebuild the stack and recreate the Docker network
+docker compose down
+docker compose up -d --build
 ```
 
 ### Local Development (Manual)
@@ -78,65 +114,25 @@ npm install
 npm run dev
 ```
 
-Navigate to http://localhost:5173
+Navigate to `http://localhost:5173`
 
-## 📊 API Endpoints
 
-### POST `/api/v1/search`
 
-Create a new apartment search.
+### Data Sources and Freshness
 
-**Request:**
-```json
-{
-  "priority": "BUDGET",
-  "maxPrice": 2500,
-  "minSqft": 800,
-  "desiredAmenities": ["laundry", "parking"],
-  "maxLeaseMonths": 12
-}
-```
+- **Live source 1:** `Craigslist Toronto`
+- **Live source 2:** `Kijiji`
+- **Fast source 3:** recently stored PostgreSQL listings that have **not expired**
+- Cached listings currently get an `expires_at` timestamp and are reused while still fresh
+- Live + cached results are merged and deduplicated before scoring
 
-**Response (202 Accepted):**
-```json
-{
-  "searchId": "uuid",
-  "status": "PENDING",
-  "pollingUrl": "/api/v1/search/{uuid}/results",
-  "estimatedWaitSeconds": 120
-}
-```
+### Current Result Behavior
 
-### GET `/api/v1/search/{searchId}/results`
-
-Poll for search results.
-
-**Response (200 OK - when completed):**
-```json
-{
-  "searchId": "uuid",
-  "status": "COMPLETED",
-  "totalApartmentsFound": 50,
-  "apartments": [
-    {
-      "id": "uuid",
-      "title": "Modern 2BR in Downtown",
-      "price": 2000,
-      "sqft": 950,
-      "bedrooms": 2,
-      "amenities": ["laundry", "parking"],
-      "finalScore": 87.5,
-      "scoreBreakdown": {
-        "priceScore": 25.0,
-        "spaceScore": 22.5,
-        "amenitiesScore": 15.0,
-        "leaseScore": 10.0
-      },
-      "sourceUrl": "https://toronto.craigslist.org/..."
-    }
-  ]
-}
-```
+- Searches are processed asynchronously
+- The frontend polls `/api/v1/search/{searchId}/results`
+- Result cards show real listing images when available
+- Cards include quick score explanations such as where a listing is strong on price but weaker on amenities
+- Cards can open detailed views and image galleries
 
 ## 🧮 Scoring Algorithm
 
@@ -216,15 +212,14 @@ nestapp/
 └── pom.xml                     # Maven dependencies
 ```
 
-## 🔧 Environment Variables
 
-| Variable      | Description              | Default       |
-|---------------|--------------------------|---------------|
-| DB_HOST       | PostgreSQL hostname      | localhost     |
-| DB_PORT       | PostgreSQL port          | 5432          |
-| DB_NAME       | Database name            | nest          |
-| DB_USER       | Database username        | postgres      |
-| DB_PASSWORD   | Database password        | postgres      |
+
+## 🗄️ Persistence Notes
+
+- Listings are stored in PostgreSQL after scraping
+- Listings include source metadata, raw HTML, expiry timestamps, and image data when available
+- Cached listings are reused for future searches while they are still fresh
+- Apartment scores are stored per search so result polling is fast once scoring completes
 
 ## 📝 Development Guidelines
 
@@ -245,10 +240,14 @@ See [`agent/CODESTYLE.md`](agent/CODESTYLE.md) for coding standards.
 - [x] React frontend with Tailwind CSS
 - [x] Docker & Docker Compose setup
 - [x] Kubernetes manifests
-- [x] Craigslist scraper (concurrent detail fetches, amenity normalisation)
+- [x] Craigslist scraper (updated live parsing, concurrent detail fetches, amenity normalisation)
+- [x] Kijiji scraper integration
 - [x] Async job processing (`@Async` + `@EnableAsync`, no broker needed)
 - [x] Bedrooms & bathrooms filters (V2 migration, scraper parsing, pre-score filtering)
+- [x] PostgreSQL-backed fresh listing cache with expiry timestamps
+- [x] Deduped live + cached listing merge before scoring
 - [x] Live results polling (5 s interval, loading overlay, dark-mode support)
+- [x] Results cards with source-aware links, score explanations, dark mode, and image carousel support
 - [ ] Email notifications
 - [ ] User authentication (JWT)
 - [ ] Saved searches
@@ -279,6 +278,6 @@ MIT License - see LICENSE for details.
 
 ## 📧 Contact
 
-Built with ☕, late nights, a deep hatred for apartment hunting, and a little help from Cursor Agent 🤖.
+Built with ☕, late nights, a deep hatred for apartment hunting, and a little help from Cursor Agent.
 
 For questions or issues, please open a GitHub issue.

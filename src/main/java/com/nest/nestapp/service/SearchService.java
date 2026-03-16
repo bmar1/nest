@@ -9,6 +9,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -56,8 +58,7 @@ public class SearchService {
         scrapingJobRepository.save(job);
         
         log.info("Created search request with ID: {}", searchRequest.getId());
-
-        applicationContext.getBean(SearchService.class).processSearchAsync(searchRequest.getId());
+        scheduleSearchProcessing(searchRequest.getId());
         
         return SearchResponseDto.builder()
                 .searchId(searchRequest.getId())
@@ -250,5 +251,20 @@ public class SearchService {
         }
 
         return filtered;
+    }
+
+    private void scheduleSearchProcessing(UUID searchId) {
+        SearchService proxy = applicationContext.getBean(SearchService.class);
+        if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+            proxy.processSearchAsync(searchId);
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                proxy.processSearchAsync(searchId);
+            }
+        });
     }
 }

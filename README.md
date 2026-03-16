@@ -232,42 +232,6 @@ See [`agent/CODESTYLE.md`](agent/CODESTYLE.md) for coding standards.
 - Comprehensive error handling
 - 90%+ test coverage for business logic
 
-## 🎯 Roadmap
-
-- [x] Database schema with Flyway migrations
-- [x] REST API endpoints
-- [x] Scoring algorithm implementation
-- [x] React frontend with Tailwind CSS
-- [x] Docker & Docker Compose setup
-- [x] Kubernetes manifests
-- [x] Craigslist scraper (updated live parsing, concurrent detail fetches, amenity normalisation)
-- [x] Kijiji scraper integration
-- [x] Async job processing (`@Async` + `@EnableAsync`, no broker needed)
-- [x] Bedrooms & bathrooms filters (V2 migration, scraper parsing, pre-score filtering)
-- [x] PostgreSQL-backed fresh listing cache with expiry timestamps
-- [x] Deduped live + cached listing merge before scoring
-- [x] Live results polling (5 s interval, loading overlay, dark-mode support)
-- [x] Results cards with source-aware links, score explanations, dark mode, and image carousel support
-- [ ] Email notifications
-- [ ] User authentication (JWT)
-- [ ] Saved searches
-- [ ] CI/CD pipeline (GitHub Actions)
-
-## 💰 Cost Optimization
-
-**DigitalOcean Kubernetes:**
-- 2-node cluster (2GB RAM/node): $24/month
-- Managed PostgreSQL (smallest tier): $15/month
-- Total: ~$39/month
-
-**Free Tier Alternative:**
-- Use local Kubernetes (minikube/Docker Desktop) for development
-- Deploy to DOKS only for demos/production
-
-## 📄 License
-
-MIT License - see LICENSE for details.
-
 ## 👥 Contributing
 
 1. Fork the repository

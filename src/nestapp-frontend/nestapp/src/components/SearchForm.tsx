@@ -34,16 +34,16 @@ export function SearchForm({ onSearchSubmitted }: SearchFormProps) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6">Find Your Perfect Apartment</h2>
+    <div className="max-w-2xl mx-auto p-6 bg-white dark:bg-card rounded-lg shadow-md border border-border">
+      <h2 className="text-2xl font-bold mb-6 text-foreground">Find Your Perfect Apartment</h2>
       
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block mb-2">Priority</label>
+          <label className="block mb-2 text-foreground">Priority</label>
           <select
             value={formData.priority}
             onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
-            className="w-full px-4 py-2 border rounded"
+            className="w-full px-4 py-2 border border-input bg-background text-foreground rounded"
           >
             <option value="BUDGET">Budget Focused</option>
             <option value="SPACE">Space Focused</option>

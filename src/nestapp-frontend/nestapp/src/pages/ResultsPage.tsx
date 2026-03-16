@@ -9,7 +9,6 @@ import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
-  Home,
   Trophy,
   MapPin,
   Bed,
@@ -413,15 +412,15 @@ function ApartmentDetailModal({ apartment, onClose }: { apartment: Apartment; on
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-cream shadow-2xl dark:bg-card"
+          className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-card shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/90 shadow-md backdrop-blur-sm transition-all hover:bg-white hover:shadow-lg"
+            className="absolute top-4 right-4 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-background/95 shadow-md backdrop-blur-sm transition-all hover:bg-accent hover:shadow-lg"
             aria-label="Close details"
           >
-            <X className="h-5 w-5 text-charcoal" />
+            <X className="h-5 w-5 text-foreground" />
           </button>
 
           <div className="relative h-48 w-full overflow-hidden rounded-t-3xl sm:h-64">
@@ -443,7 +442,7 @@ function ApartmentDetailModal({ apartment, onClose }: { apartment: Apartment; on
           <div className="p-6 sm:p-8">
             {/* Stats */}
             <div className="flex flex-wrap gap-4">
-              <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm dark:bg-surface-elevated">
+              <div className="flex items-center gap-2 rounded-xl bg-muted/50 px-4 py-2.5 shadow-sm dark:bg-surface-elevated">
                 <DollarSign className="h-4 w-4 text-primary" aria-hidden />
                 <div>
                   <p className="font-mono text-xl font-bold text-primary">${apartment.price.toLocaleString()}</p>
@@ -451,7 +450,7 @@ function ApartmentDetailModal({ apartment, onClose }: { apartment: Apartment; on
                 </div>
               </div>
               {apartment.sqft > 0 && (
-                <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm dark:bg-surface-elevated">
+                <div className="flex items-center gap-2 rounded-xl bg-muted/50 px-4 py-2.5 shadow-sm dark:bg-surface-elevated">
                   <Maximize2 className="h-4 w-4 text-primary" aria-hidden />
                   <div>
                     <p className="font-mono text-xl font-bold text-foreground">{apartment.sqft.toLocaleString()}</p>
@@ -460,7 +459,7 @@ function ApartmentDetailModal({ apartment, onClose }: { apartment: Apartment; on
                 </div>
               )}
               {apartment.bedrooms > 0 && (
-                <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm dark:bg-surface-elevated">
+                <div className="flex items-center gap-2 rounded-xl bg-muted/50 px-4 py-2.5 shadow-sm dark:bg-surface-elevated">
                   <Bed className="h-4 w-4 text-primary" aria-hidden />
                   <div>
                     <p className="font-mono text-xl font-bold text-foreground">{apartment.bedrooms}bd</p>
@@ -469,7 +468,7 @@ function ApartmentDetailModal({ apartment, onClose }: { apartment: Apartment; on
                 </div>
               )}
               {apartment.bathrooms > 0 && (
-                <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm dark:bg-surface-elevated">
+                <div className="flex items-center gap-2 rounded-xl bg-muted/50 px-4 py-2.5 shadow-sm dark:bg-surface-elevated">
                   <Bath className="h-4 w-4 text-primary" aria-hidden />
                   <div>
                     <p className="font-mono text-xl font-bold text-foreground">{apartment.bathrooms}ba</p>
@@ -477,7 +476,7 @@ function ApartmentDetailModal({ apartment, onClose }: { apartment: Apartment; on
                   </div>
                 </div>
               )}
-              <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm dark:bg-surface-elevated">
+              <div className="flex items-center gap-2 rounded-xl bg-muted/50 px-4 py-2.5 shadow-sm dark:bg-surface-elevated">
                 <Calendar className="h-4 w-4 text-primary" aria-hidden />
                 <div>
                   <p className="font-mono text-xl font-bold text-foreground">{apartment.leaseTermMonths}</p>
@@ -492,7 +491,7 @@ function ApartmentDetailModal({ apartment, onClose }: { apartment: Apartment; on
                 <BarChart3 className="h-5 w-5 text-primary" aria-hidden />
                 Score Breakdown
               </h3>
-              <Card className="mt-3 border-sage-muted/30 bg-white/70 p-5 dark:bg-surface-elevated/90">
+              <Card className="mt-3 border-sage-muted/30 bg-muted/30 p-5 dark:bg-surface-elevated/90">
                 <div className="mb-4 flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Overall Match</span>
                   <span className="font-mono text-3xl font-bold text-primary">
@@ -577,8 +576,8 @@ function RankingCard({ apartment, onViewDetails }: {
       className={cn(
         'group relative overflow-hidden rounded-2xl border-2 transition-all duration-300',
         apartment.rank === 1
-          ? 'cursor-pointer border-primary/40 bg-white shadow-xl shadow-primary/10 hover:border-primary/60 hover:shadow-2xl hover:shadow-primary/15 dark:bg-card dark:shadow-black/20'
-          : 'cursor-pointer border-sage-muted/30 bg-white shadow-sm hover:border-sage-muted/50 hover:shadow-md dark:bg-card dark:shadow-black/10'
+          ? 'cursor-pointer border-primary/40 bg-card shadow-xl shadow-primary/10 hover:border-primary/60 hover:shadow-2xl hover:shadow-primary/15'
+          : 'cursor-pointer border-sage-muted/30 bg-card shadow-sm hover:border-sage-muted/50 hover:shadow-md dark:border-border'
       )}
       onClick={onViewDetails}
     >
@@ -603,8 +602,8 @@ function RankingCard({ apartment, onViewDetails }: {
           <div className={cn(
             'absolute top-3 left-3 flex h-9 w-9 items-center justify-center rounded-xl font-mono text-sm font-bold shadow-md',
             apartment.rank === 1
-              ? 'bg-white/95 text-primary backdrop-blur-sm dark:bg-card/95 dark:text-primary'
-              : 'bg-white/95 text-slate-900 backdrop-blur-sm dark:bg-card/95 dark:text-primary'
+              ? 'bg-background/95 text-primary backdrop-blur-sm dark:bg-card/95 dark:text-primary'
+              : 'bg-background/95 text-foreground backdrop-blur-sm dark:bg-card/95 dark:text-primary'
           )}>
             #{apartment.rank}
           </div>
@@ -789,7 +788,7 @@ function LoadingScreen({ status }: { status: JobStatus }) {
         </motion.p>
       </AnimatePresence>
 
-      <div className="mt-8 flex items-center gap-2 rounded-full border border-sage-muted/40 bg-white/70 px-5 py-2.5 text-sm text-muted-foreground backdrop-blur-sm dark:border-border dark:bg-surface/80">
+      <div className="mt-8 flex items-center gap-2 rounded-full border border-sage-muted/40 bg-muted/50 px-5 py-2.5 text-sm text-muted-foreground backdrop-blur-sm dark:border-border dark:bg-surface/80">
         <Clock className="h-4 w-4 text-primary" aria-hidden />
         This usually takes under 2 minutes
         {status === 'PROCESSING' && (
@@ -864,7 +863,7 @@ export function ResultsPage() {
   return (
     <div className="min-h-screen bg-linear-to-b from-cream via-cream to-sage-muted/10 dark:from-background dark:via-background dark:to-accent/30">
       {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-sage-muted/30 bg-cream/95 backdrop-blur supports-backdrop-filter:bg-cream/80 dark:border-border dark:bg-background/90 dark:supports-backdrop-filter:bg-background/80">
+      <header className="sticky top-0 z-30 border-b border-sage-muted/30 bg-cream/95 backdrop-blur supports-[backdrop-filter]:bg-cream/80 dark:border-border dark:bg-background/95 dark:supports-[backdrop-filter]:bg-background/80">
         <div className="container mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
           <Link
             to="/search"
@@ -879,7 +878,7 @@ export function ResultsPage() {
             className="flex min-h-[44px] items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Nest home"
           >
-            <Home className="h-5 w-5 text-primary" aria-hidden />
+            <img src="/nest-logo-transparent-cropped.png" alt="Nest logo" width={28} height={28} className="text-primary" />
             <span className="text-lg font-bold text-foreground">Nest</span>
           </Link>
           <div className="w-20" aria-hidden />
@@ -984,7 +983,7 @@ export function ResultsPage() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="mt-12 rounded-2xl border border-sage-muted/30 bg-white/60 p-8 text-center backdrop-blur-sm dark:border-border dark:bg-card/90"
+            className="mt-12 rounded-2xl border border-sage-muted/30 bg-muted/40 p-8 text-center backdrop-blur-sm dark:border-border dark:bg-card/90"
           >
             <p className="text-lg font-semibold text-foreground">Not quite right?</p>
             <p className="mt-1 text-muted-foreground">

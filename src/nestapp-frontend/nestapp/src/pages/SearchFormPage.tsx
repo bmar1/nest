@@ -12,7 +12,6 @@ import {
   Scale,
   ArrowLeft,
   Search,
-  Home,
   Car,
   Dumbbell,
   Shirt,
@@ -205,7 +204,7 @@ export function SearchFormPage() {
     (formData.maxLeaseMonths !== 12 ? 1 : 0)
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-cream via-cream to-sage-muted/20 dark-mesh">
+    <div className="min-h-screen bg-gradient-to-b from-cream via-cream to-sage-muted/20 dark:from-background dark:via-background dark:to-accent/20">
       <AnimatePresence>
         {isSubmitting && (
           <motion.div
@@ -243,7 +242,7 @@ export function SearchFormPage() {
             className="flex min-h-[44px] items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             aria-label="Nest home"
           >
-            <Home className="h-5 w-5 text-primary" aria-hidden />
+            <img src="/nest-logo-transparent-cropped.png" alt="Nest logo" width={28} height={28} className="text-primary" />
             <span className="text-lg font-bold text-foreground">Nest</span>
           </Link>
           <div className="w-16" aria-hidden />
@@ -373,7 +372,7 @@ export function SearchFormPage() {
                       {formData.maxLeaseMonths} mo lease
                     </span>
                     {formData.desiredAmenities.length > 0 && (
-                      <span className="inline-flex items-center rounded-md bg-cream px-2.5 py-0.5 text-xs font-medium text-foreground">
+                      <span className="inline-flex items-center rounded-md bg-cream px-2.5 py-0.5 text-xs font-medium text-foreground dark:bg-surface-elevated">
                         {formData.desiredAmenities.length} amenities
                       </span>
                     )}

@@ -1,231 +1,79 @@
 @import "tailwindcss";
 
-/* Nest design tokens (APPDESIGNSKILL) - home-y, welcoming */
-:root {
-  --nest-primary: #2D5016;      /* Forest Green - home stability */
-  --nest-primary-light: #3d6b20;
-  --nest-secondary: #87A96B;    /* Sage - calming complement */
-  --nest-sage-light: #a8c48a;
-  --nest-sage-muted: #c5d9b0;
-  --nest-cream: #FAF6F1;        /* Warm background */
-  --nest-cream-dark: #f0e9e0;
-  --nest-charcoal: #334155;     /* Softer text hierarchy */
-  --nest-slate: #7a8599;
-  --nest-warm: #b8956b;         /* Warm accent - inviting */
-  --nest-warm-muted: #d4c4a8;   /* Soft warm for backgrounds */
+/* ─── Design tokens (light mode defaults) ─── */
+@theme {
+  --color-primary:            oklch(0.4 0.15 145);
+  --color-primary-foreground: oklch(0.99 0 0);
+
+  --color-sage:               oklch(0.55 0.08 145);
+  --color-sage-muted:         oklch(0.7 0.05 145);
+  --color-cream:              oklch(0.98 0.01 85);
+  --color-warm:               oklch(0.65 0.1 55);
+
+  --color-background:         oklch(0.98 0.01 85);
+  --color-foreground:         oklch(0.2 0.02 260);
+  --color-muted-foreground:   oklch(0.5 0.02 260);
+  --color-muted:              oklch(0.95 0.01 260);
+
+  --color-card:               oklch(1 0 0);
+  --color-card-foreground:    oklch(0.2 0.02 260);
+
+  --color-border:             oklch(0.9 0.01 260);
+  --color-input:              oklch(0.9 0.01 260);
+  --color-ring:               oklch(0.4 0.15 145);
+
+  --color-accent:             oklch(0.95 0.02 145);
+  --color-accent-foreground:  oklch(0.2 0.02 260);
+
+  --color-secondary:          oklch(0.95 0.02 145);
+  --color-secondary-foreground: oklch(0.2 0.02 260);
+
+  --color-destructive:        oklch(0.55 0.2 25);
+  --color-destructive-foreground: oklch(0.99 0 0);
+
+  --color-surface:            oklch(0.96 0.01 85);
+  --color-surface-elevated:   oklch(0.98 0.01 85);
+  --color-surface-overlay:    oklch(0.94 0.01 85);
+
+  /* For framer-motion JS usage */
+  --nest-primary:    oklch(0.4 0.15 145);
+  --nest-sage-muted: oklch(0.7 0.05 145);
 }
 
-html {
-  scroll-behavior: smooth;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
-}
-
-/* shadcn/ui CSS variables - Nest palette override */
-:root {
-  --radius: 0.625rem;
-  --background: var(--nest-cream);
-  --foreground: var(--nest-charcoal);
-  --card: oklch(1 0 0);
-  --card-foreground: var(--nest-charcoal);
-  --popover: oklch(1 0 0);
-  --popover-foreground: var(--nest-charcoal);
-  --primary: var(--nest-primary);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: var(--nest-secondary);
-  --secondary-foreground: oklch(0.2 0.05 145);
-  --muted: oklch(0.96 0.01 90);
-  --muted-foreground: var(--nest-slate);
-  --accent: oklch(0.94 0.02 90);
-  --accent-foreground: var(--nest-charcoal);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.9 0.02 90);
-  --input: oklch(0.92 0.02 90);
-  --ring: var(--nest-primary);
-}
-
-/* ─── Dark Mode ─────────────────────────── */
+/* ─── Dark mode overrides ─── */
 .dark {
-  --nest-cream: #0c0e14;
-  --nest-cream-dark: #12151e;
-  --nest-charcoal: #eaebef;
-  --nest-slate: #9ea2b5;
-  --nest-sage-muted: #252e24;
-  --nest-sage-light: #3d5a2f;
-  --nest-warm-muted: #2a2520;
+  --color-background:         oklch(0.15 0.02 260);
+  --color-foreground:         oklch(0.95 0.01 260);
+  --color-muted-foreground:   oklch(0.65 0.02 260);
+  --color-muted:              oklch(0.25 0.02 260);
 
-  --background: #0c0e14;
-  --foreground: #eaebef;
-  --card: #161923;
-  --card-foreground: #eaebef;
-  --popover: #161923;
-  --popover-foreground: #eaebef;
-  --primary: #4a8a2a;
-  --primary-foreground: #f0f0f0;
-  --secondary: #3d5a2f;
-  --secondary-foreground: #c5d9b0;
-  --muted: #1a1d28;
-  --muted-foreground: #9ea2b5;
-  --accent: #1e2130;
-  --accent-foreground: #eaebef;
-  --destructive: #e04848;
-  --destructive-foreground: #f0f0f0;
-  --border: #252840;
-  --input: #2e3248;
-  --ring: #4a8a2a;
+  --color-card:               oklch(0.2 0.02 260);
+  --color-card-foreground:    oklch(0.95 0.01 260);
+
+  --color-border:             oklch(0.35 0.02 260);
+  --color-input:              oklch(0.35 0.02 260);
+  --color-ring:               oklch(0.5 0.15 145);
+
+  --color-accent:             oklch(0.25 0.02 260);
+  --color-accent-foreground:  oklch(0.95 0.01 260);
+
+  --color-secondary:          oklch(0.25 0.02 260);
+  --color-secondary-foreground: oklch(0.95 0.01 260);
+
+  --color-surface:            oklch(0.22 0.02 260);
+  --color-surface-elevated:   oklch(0.28 0.02 260);
+  --color-surface-overlay:    oklch(0.32 0.02 260);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-sage: var(--nest-secondary);
-  --color-sage-light: var(--nest-sage-light);
-  --color-sage-muted: var(--nest-sage-muted);
-  --color-cream: var(--nest-cream);
-  --color-cream-dark: var(--nest-cream-dark);
-  --color-warm: var(--nest-warm);
-  --color-warm-muted: var(--nest-warm-muted);
-
-  /* Dark mode surface tokens */
-  --color-surface: #161923;
-  --color-surface-elevated: #1e2130;
-  --color-surface-overlay: #2a2d3a;
-
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-}
-
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: 'Inter', system-ui, sans-serif;
-  line-height: 1.5;
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-/* Dark mode ambient background gradients — only active under .dark */
-.dark .dark-ambient {
-  background: linear-gradient(145deg, #0c0e14 0%, #111320 30%, #0e1018 60%, #0c0e14 100%);
-}
-
-.dark .dark-mesh {
-  background:
-    radial-gradient(ellipse at 15% 10%, rgba(30, 40, 65, 0.4) 0%, transparent 50%),
-    radial-gradient(ellipse at 85% 20%, rgba(25, 35, 50, 0.3) 0%, transparent 40%),
-    radial-gradient(ellipse at 50% 80%, rgba(20, 25, 40, 0.35) 0%, transparent 50%),
-    linear-gradient(180deg, #0c0e14 0%, #10131e 50%, #0c0e14 100%);
-}
-
-.dark .dark-gradient-down {
-  background: linear-gradient(180deg, #0c0e14 0%, #111525 40%, #151a2a 70%, #0e1018 100%);
-}
-
-
-/* Fira Code for prices/numbers */
-.font-mono {
-  font-family: 'Fira Code', ui-monospace, monospace;
-}
-
-/* Landing page animations */
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-12px); }
-}
-
-@keyframes float-delayed {
-  0%, 100% { transform: translateY(0px) rotate(-2deg); }
-  50% { transform: translateY(-8px) rotate(1deg); }
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-@keyframes gradient-shift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
-
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(45, 80, 22, 0.15); }
-  50% { box-shadow: 0 0 24px 4px rgba(45, 80, 22, 0.1); }
-}
-
-@keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-float {
-  animation: float 5s ease-in-out infinite;
-}
-
-.animate-float-delayed {
-  animation: float-delayed 6s ease-in-out infinite;
-}
-
-.animate-shimmer {
-  background-size: 200% 100%;
-  animation: shimmer 3s linear infinite;
-}
-
-.animate-gradient {
-  background-size: 200% 200%;
-  animation: gradient-shift 8s ease infinite;
-}
-
-.animate-pulse-glow {
-  animation: pulse-glow 3s ease-in-out infinite;
-}
-
-.text-balance {
-  text-wrap: balance;
-}
-
-/* Parallax depth layers */
-.parallax-slow { will-change: transform; }
-.parallax-fast { will-change: transform; }
-
-/* Smooth image transitions */
-.img-reveal {
-  clip-path: inset(0);
-  transition: clip-path 0.6s cubic-bezier(0.65, 0, 0.35, 1);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-float,
-  .animate-float-delayed,
-  .animate-shimmer,
-  .animate-gradient,
-  .animate-pulse-glow {
-    animation: none;
+/* ─── Base layer ─── */
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }

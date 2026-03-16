@@ -132,7 +132,7 @@ public class ScraperService {
                     .collect(Collectors.toList());
 
             log.info("{} detail fetches produced {} apartments", sourceName.get(), apartments.size());
-            return apartments;
+        return apartments;
         } finally {
             pool.shutdownNow();
         }

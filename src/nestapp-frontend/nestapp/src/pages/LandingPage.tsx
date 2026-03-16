@@ -278,13 +278,16 @@ function TabCounter() {
       <div className="relative flex items-baseline gap-1">
         <motion.span
           key={tabCount}
-          initial={{ scale: 1.3, color: '#ef4444' }}
-          animate={{ scale: 1, color: tabCount >= maxTabs ? '#ef4444' : '#334155' }}
-          className="font-mono text-6xl font-bold sm:text-7xl"
+          initial={{ scale: 1.3 }}
+          animate={{ scale: 1 }}
+          className={cn(
+            'font-mono text-6xl font-bold sm:text-7xl',
+            tabCount >= maxTabs ? 'text-red-400' : 'text-white dark:text-white'
+          )}
         >
           {tabCount}
         </motion.span>
-        <span className="text-2xl font-semibold text-muted-foreground">tabs</span>
+        <span className="text-2xl font-semibold text-slate-400 dark:text-slate-400">tabs</span>
       </div>
       <AnimatePresence>
         {tabCount >= maxTabs && (
@@ -448,7 +451,7 @@ function ScrollRevealJourney() {
   }
 
   return (
-    <section className="border-t border-sage-muted/30 bg-gradient-to-b from-white to-cream dark-gradient-down dark:border-border">
+    <section className="border-t border-sage-muted/30 bg-gradient-to-b from-white to-cream dark:from-background dark:to-surface dark:border-border">
       <div ref={containerRef} className="relative" style={{ height: `${journeyStages.length * 100}vh` }}>
         <div className="sticky top-0 flex h-screen items-center overflow-hidden">
           <div className="container mx-auto max-w-6xl px-4">
@@ -630,7 +633,7 @@ export function LandingPage() {
   const heroY = useTransform(scrollYProgress, [0, 1], [0, 80])
 
   return (
-    <div className="min-h-screen bg-cream dark-mesh">
+    <div className="min-h-screen bg-cream dark:bg-background">
       {/* ─── Floating Navbar ─────────────────── */}
       <nav className="sticky top-4 left-4 right-4 z-30 mx-auto max-w-6xl rounded-2xl border border-sage-muted/50 bg-cream/90 px-5 py-3 shadow-sm backdrop-blur-xl dark:border-border dark:bg-surface/90">
         <div className="flex h-12 items-center justify-between">
@@ -639,7 +642,7 @@ export function LandingPage() {
             className="flex min-h-[44px] min-w-[44px] cursor-pointer items-center gap-2.5 font-bold text-foreground transition-colors duration-200 hover:text-primary focus-visible:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             aria-label="Nest home"
           >
-            <Home className="h-5 w-5 text-primary" aria-hidden />
+            <img src="/nest-logo-transparent-cropped.png" alt="Nest logo" width={28} height={28} className="text-primary" />
             <span className="text-xl tracking-tight">Nest</span>
           </Link>
 
@@ -903,7 +906,7 @@ export function LandingPage() {
       {/* ─── FEATURES BENTO GRID ─────────────── */}
       <section
         id="features"
-        className="border-t border-sage-muted/30 bg-gradient-to-b from-cream to-white py-24 sm:py-32 dark-gradient-down dark:border-border"
+        className="border-t border-sage-muted/30 bg-gradient-to-b from-cream to-white py-24 sm:py-32 dark:from-background dark:to-surface dark:border-border"
       >
         <div className="container mx-auto max-w-6xl px-4">
           <motion.div
@@ -982,7 +985,7 @@ export function LandingPage() {
       {/* ─── HOW IT WORKS ────────────────────── */}
       <section
         id="how-it-works"
-        className="border-t border-sage-muted/30 bg-white py-24 sm:py-32 dark-ambient dark:border-border"
+        className="border-t border-sage-muted/30 bg-white py-24 sm:py-32 dark:bg-background dark:border-border"
       >
         <div className="container mx-auto max-w-6xl px-4">
           <motion.div
@@ -1059,7 +1062,7 @@ export function LandingPage() {
       <ScrollRevealJourney />
 
       {/* ─── TRUST & TRANSPARENCY ────────────── */}
-      <section className="border-t border-sage-muted/30 bg-cream-dark/40 py-24 sm:py-32 dark-mesh dark:border-border">
+      <section className="border-t border-sage-muted/30 bg-sage-muted/20 py-24 sm:py-32 dark:bg-surface/60 dark:border-border">
         <div className="container mx-auto max-w-6xl px-4">
           <div className="grid items-center gap-16 lg:grid-cols-2">
             <motion.div
@@ -1153,7 +1156,7 @@ export function LandingPage() {
       {/* ─── TESTIMONIALS ────────────────────── */}
       <section
         id="testimonials"
-        className="border-t border-sage-muted/30 bg-white py-24 sm:py-32 dark-gradient-down dark:border-border"
+        className="border-t border-sage-muted/30 bg-white py-24 sm:py-32 dark:bg-background dark:border-border"
       >
         <div className="container mx-auto max-w-6xl px-4">
           <motion.div
@@ -1180,7 +1183,7 @@ export function LandingPage() {
                 transition={{ duration: 0.4, delay: i * 0.1 }}
                 whileHover={{ y: -4 }}
               >
-                <Card className="group h-full cursor-default border-sage-muted/40 bg-cream/40 p-8 transition-all duration-300 hover:border-primary/15 hover:shadow-lg dark:border-border dark:bg-surface/40">
+                <Card className="group h-full cursor-default border-sage-muted/40 bg-cream/40 p-8 transition-all duration-300 hover:border-primary/15 hover:shadow-lg dark:border-border dark:bg-card dark:text-foreground">
                   <Quote
                     className="h-10 w-10 text-sage-muted transition-colors duration-300 group-hover:text-primary/30"
                     aria-hidden
@@ -1262,7 +1265,7 @@ export function LandingPage() {
       <footer className="border-t border-sage-muted/30 bg-cream py-10 dark:border-border dark:bg-background">
         <div className="container mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 text-sm text-muted-foreground sm:flex-row">
           <div className="flex items-center gap-2">
-            <Home className="h-4 w-4 text-primary" aria-hidden />
+            <img src="/nest-logo-transparent-cropped.png" alt="Nest logo" width={20} height={20} className="text-primary" />
             <span className="font-semibold text-foreground">Nest</span>
             <span>&copy; {new Date().getFullYear()}</span>
           </div>

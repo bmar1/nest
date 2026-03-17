@@ -1,6 +1,6 @@
-# 🏡 Nest 
+# <img src="\src\nestapp-frontend\nestapp\public\nest-logo-transparent-cropped.png" alt="Icon" width="35" height="35"> Nest
 
-**Stop scrolling. Start scoring.**
+**Find your dream home cheaper & faster and without the hassle.**
 
 Nest is an apartment search platform that scrapes live listings, reuses fresh cached listings from PostgreSQL, deduplicates results across sources, and ranks apartments based on your priorities instead of generic sort order. Tell Nest what matters most, and it returns scored results with source links, images, and transparent score breakdowns.
 
@@ -12,10 +12,8 @@ Nest is an apartment search platform that scrapes live listings, reuses fresh ca
 - **Fresh Listing Cache**: Reuses non-expired listings stored in PostgreSQL for faster follow-up searches
 - **Deduped Results**: Merges live + cached listings and removes duplicates before scoring
 - **Real Listing Images**: Returns real source images when available and shows them in the results UI
-- **Microservices Architecture**: Spring Boot REST API + React frontend
-- **Docker Support**: Full containerization with Docker Compose for local development
-- **Kubernetes-Ready**: Deploy to DigitalOcean Kubernetes with included manifests
-
+- **Docker Support**: Full containerization with Docker Compose for local development,
+- 
 ## 🏗️ Architecture
 
 ```
@@ -126,14 +124,6 @@ Navigate to `http://localhost:5173`
 - Cached listings currently get an `expires_at` timestamp and are reused while still fresh
 - Live + cached results are merged and deduplicated before scoring
 
-### Current Result Behavior
-
-- Searches are processed asynchronously
-- The frontend polls `/api/v1/search/{searchId}/results`
-- Result cards show real listing images when available
-- Cards include quick score explanations such as where a listing is strong on price but weaker on amenities
-- Cards can open detailed views and image galleries
-
 ## 🧮 Scoring Algorithm
 
 ### Score Components (0-100 total)
@@ -187,30 +177,6 @@ kubectl apply -f k8s/api-deployment.yaml
 kubectl apply -f k8s/frontend-deployment.yaml
 ```
 
-## 🧪 Testing
-
-```bash
-# Run all tests
-./mvnw test
-
-# Run with coverage
-./mvnw test jacoco:report
-
-# View coverage report
-open target/site/jacoco/index.html
-```
-
-### Practical local verification
-
-```bash
-# Backend build
-./mvnw clean package -DskipTests
-
-# Frontend build
-cd src/nestapp-frontend/nestapp
-npm run build
-```
-
 ## 📁 Project Structure
 
 ```
@@ -255,42 +221,6 @@ See [`agent/CODESTYLE.md`](agent/CODESTYLE.md) for coding standards.
 - No more than 4 parameters per function
 - Comprehensive error handling
 - 90%+ test coverage for business logic
-
-## 🎯 Roadmap
-
-- [x] Database schema with Flyway migrations
-- [x] REST API endpoints
-- [x] Scoring algorithm implementation
-- [x] React frontend with Tailwind CSS
-- [x] Docker & Docker Compose setup
-- [x] Kubernetes manifests
-- [x] Craigslist scraper (updated live parsing, concurrent detail fetches, amenity normalisation)
-- [x] Kijiji scraper integration
-- [x] Async job processing (`@Async` + `@EnableAsync`, no broker needed)
-- [x] Bedrooms & bathrooms filters (V2 migration, scraper parsing, pre-score filtering)
-- [x] PostgreSQL-backed fresh listing cache with expiry timestamps
-- [x] Deduped live + cached listing merge before scoring
-- [x] Live results polling (5 s interval, loading overlay, dark-mode support)
-- [x] Results cards with source-aware links, score explanations, dark mode, and image carousel support
-- [ ] Email notifications
-- [ ] User authentication (JWT)
-- [ ] Saved searches
-- [ ] CI/CD pipeline (GitHub Actions)
-
-## 💰 Cost Optimization
-
-**DigitalOcean Kubernetes:**
-- 2-node cluster (2GB RAM/node): $24/month
-- Managed PostgreSQL (smallest tier): $15/month
-- Total: ~$39/month
-
-**Free Tier Alternative:**
-- Use local Kubernetes (minikube/Docker Desktop) for development
-- Deploy to DOKS only for demos/production
-
-## 📄 License
-
-MIT License - see LICENSE for details.
 
 ## 👥 Contributing
 

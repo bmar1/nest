@@ -14,7 +14,8 @@ spring:
   
   jpa:
     hibernate:
-      ddl-auto: update
+      # Flyway owns all DDL; Hibernate only validates that entities match the schema.
+      ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
@@ -29,8 +30,12 @@ spring:
 server:
   port: 8080
   error:
-    include-message: always
-    include-binding-errors: always
+    # Never expose raw exception messages or binding errors to clients.
+    # GlobalExceptionHandler returns clean, user-facing error bodies.
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
 
 logging:
   level:

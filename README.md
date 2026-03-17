@@ -12,10 +12,8 @@ Nest is an apartment search platform that scrapes live listings, reuses fresh ca
 - **Fresh Listing Cache**: Reuses non-expired listings stored in PostgreSQL for faster follow-up searches
 - **Deduped Results**: Merges live + cached listings and removes duplicates before scoring
 - **Real Listing Images**: Returns real source images when available and shows them in the results UI
-- **Microservices Architecture**: Spring Boot REST API + React frontend
-- **Docker Support**: Full containerization with Docker Compose for local development
-- **Kubernetes-Ready**: Deploy to DigitalOcean Kubernetes with included manifests
-
+- **Docker Support**: Full containerization with Docker Compose for local development,
+- 
 ## 🏗️ Architecture
 
 ```
@@ -125,14 +123,6 @@ Navigate to `http://localhost:5173`
 - **Fast source 3:** recently stored PostgreSQL listings that have **not expired**
 - Cached listings currently get an `expires_at` timestamp and are reused while still fresh
 - Live + cached results are merged and deduplicated before scoring
-
-### Current Result Behavior
-
-- Searches are processed asynchronously
-- The frontend polls `/api/v1/search/{searchId}/results`
-- Result cards show real listing images when available
-- Cards include quick score explanations such as where a listing is strong on price but weaker on amenities
-- Cards can open detailed views and image galleries
 
 ## 🧮 Scoring Algorithm
 

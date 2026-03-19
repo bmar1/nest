@@ -2,7 +2,6 @@ package com.nest.nestapp.filter;
 
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
-import io.github.bucket4j.Refill;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -83,17 +82,19 @@ public class RateLimitingFilter implements Filter {
 
     private static Bucket buildSearchBucket() {
         return Bucket.builder()
-                .addLimit(Bandwidth.classic(
-                        SEARCH_LIMIT_PER_MINUTE,
-                        Refill.greedy(SEARCH_LIMIT_PER_MINUTE, Duration.ofMinutes(1))))
+                .addLimit(Bandwidth.builder()
+                        .capacity(SEARCH_LIMIT_PER_MINUTE)
+                        .refillGreedy(SEARCH_LIMIT_PER_MINUTE, Duration.ofMinutes(1))
+                        .build())
                 .build();
     }
 
     private static Bucket buildResultsBucket() {
         return Bucket.builder()
-                .addLimit(Bandwidth.classic(
-                        RESULTS_LIMIT_PER_MINUTE,
-                        Refill.greedy(RESULTS_LIMIT_PER_MINUTE, Duration.ofMinutes(1))))
+                .addLimit(Bandwidth.builder()
+                        .capacity(RESULTS_LIMIT_PER_MINUTE)
+                        .refillGreedy(RESULTS_LIMIT_PER_MINUTE, Duration.ofMinutes(1))
+                        .build())
                 .build();
     }
 

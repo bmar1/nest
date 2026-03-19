@@ -747,7 +747,15 @@ function RankingCard({ apartment, onViewDetails }: {
 
 /* ─── Loading Screen ───────────────────── */
 
-function LoadingScreen({ status }: { status: JobStatus }) {
+function LoadingScreen({
+  status,
+  rateLimited = false,
+  retryIn = 0,
+}: {
+  status: JobStatus
+  rateLimited?: boolean
+  retryIn?: number
+}) {
   const steps = ['Searching listings...', 'Comparing options...', 'Scoring matches...']
   const [step, setStep] = useState(0)
 
@@ -797,6 +805,21 @@ function LoadingScreen({ status }: { status: JobStatus }) {
           </span>
         )}
       </div>
+
+      <AnimatePresence>
+        {rateLimited && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.3 }}
+            className="mt-4 flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-50/80 px-5 py-2.5 text-sm text-amber-800 dark:border-amber-500/40 dark:bg-amber-950/40 dark:text-amber-300"
+          >
+            <AlertCircle className="h-4 w-4 shrink-0" aria-hidden />
+            Too many requests — resuming in {retryIn}s
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -812,7 +835,9 @@ export function ResultsPage() {
   const [totalFound, setTotalFound] = useState(0)
   const [selectedApartment, setSelectedApartment] = useState<Apartment | null>(null)
   const [showConfetti, setShowConfetti] = useState(false)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [rateLimited, setRateLimited] = useState(false)
+  const [retryIn, setRetryIn] = useState(0)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (!searchId) {
@@ -820,42 +845,89 @@ export function ResultsPage() {
       return
     }
 
+    let cancelled = false
+    // Exponential back-off state: starts at 3s, doubles on each non-terminal
+    // response, capped at 30s. Resets to 3s after a rate-limit pause clears.
+    let delay = 3000
+    let networkErrors = 0
+
+    const schedule = (ms: number) => {
+      if (cancelled) return
+      timeoutRef.current = setTimeout(poll, ms)
+    }
+
     const poll = async () => {
+      if (cancelled) return
       try {
         const { data } = await axios.get<SearchResultsDto>(
           `http://localhost:8080/api/v1/search/${searchId}/results`
         )
 
+        networkErrors = 0
+        if (cancelled) return
         setStatus(data.status)
 
         if (data.status === 'COMPLETED') {
-          if (intervalRef.current) clearInterval(intervalRef.current)
           const mapped = (data.apartments ?? []).map(mapDto)
           setApartments(mapped)
           setTotalFound(data.totalApartmentsFound ?? mapped.length)
           setShowConfetti(true)
           setTimeout(() => setShowConfetti(false), 3500)
         } else if (data.status === 'FAILED') {
-          if (intervalRef.current) clearInterval(intervalRef.current)
           navigate('/search')
+        } else {
+          // Still PENDING or PROCESSING — back off and try again
+          delay = Math.min(delay * 2, 30000)
+          schedule(delay)
         }
-      } catch {
-        if (intervalRef.current) clearInterval(intervalRef.current)
-        navigate('/search')
+      } catch (err) {
+        if (cancelled) return
+
+        if (axios.isAxiosError(err) && err.response?.status === 429) {
+          // Rate limited — honour Retry-After then resume
+          const retryAfter = parseInt(err.response.headers['retry-after'] ?? '60', 10)
+          setRateLimited(true)
+          setRetryIn(retryAfter)
+
+          let remaining = retryAfter
+          const countdownId = setInterval(() => {
+            remaining -= 1
+            setRetryIn(remaining)
+            if (remaining <= 0) {
+              clearInterval(countdownId)
+              if (!cancelled) {
+                setRateLimited(false)
+                delay = 3000 // reset back-off after the pause
+                schedule(0)
+              }
+            }
+          }, 1000)
+        } else if (axios.isAxiosError(err) && err.response && err.response.status >= 500) {
+          navigate('/search')
+        } else {
+          // Transient network error — retry up to 3 times before giving up
+          networkErrors += 1
+          if (networkErrors >= 3) {
+            navigate('/search')
+          } else {
+            delay = Math.min(delay * 2, 30000)
+            schedule(delay)
+          }
+        }
       }
     }
 
     poll() // immediate first check
-    intervalRef.current = setInterval(poll, 5000)
 
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
+      cancelled = true
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
     }
   }, [searchId, navigate])
 
   /* ── Loading ── */
   if (status !== 'COMPLETED') {
-    return <LoadingScreen status={status} />
+    return <LoadingScreen status={status} rateLimited={rateLimited} retryIn={retryIn} />
   }
 
   const topApartment = apartments[0]

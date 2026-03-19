@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
+import { getSearchSubmitErrorMessage } from '@/lib/searchSubmitErrors';
 
 interface SearchFormData {
   priority: 'BUDGET' | 'SPACE' | 'AMENITIES' | 'BALANCED';
@@ -21,15 +22,21 @@ export function SearchForm({ onSearchSubmitted }: SearchFormProps) {
     desiredAmenities: [],
     maxLeaseMonths: 12,
   });
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    setError(null);
+    setIsSubmitting(true);
     try {
       const response = await axios.post('http://localhost:8080/api/v1/search', formData);
       onSearchSubmitted(response.data.searchId);
-    } catch (error) {
-      console.error('Error submitting search:', error);
+    } catch (err) {
+      console.error('Error submitting search:', err);
+      setError(getSearchSubmitErrorMessage(err));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -86,11 +93,25 @@ export function SearchForm({ onSearchSubmitted }: SearchFormProps) {
           />
         </div>
 
+        {error && (
+          <div
+            className={
+              error.startsWith('Too many search')
+                ? 'rounded-md border border-amber-500/50 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-200'
+                : 'rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive'
+            }
+            role="alert"
+          >
+            {error}
+          </div>
+        )}
+
         <button
           type="submit"
-          className="w-full bg-green-700 text-white py-3 rounded hover:bg-green-800"
+          disabled={isSubmitting}
+          className="w-full bg-green-700 text-white py-3 rounded hover:bg-green-800 disabled:opacity-60"
         >
-          Search Apartments
+          {isSubmitting ? 'Searching…' : 'Search Apartments'}
         </button>
       </form>
     </div>

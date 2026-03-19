@@ -27,6 +27,7 @@ import {
   Bed,
   Bath,
 } from 'lucide-react'
+import { getSearchSubmitErrorMessage } from '@/lib/searchSubmitErrors'
 import { cn } from '@/lib/utils'
 
 /* ─── Types ────────────────────────────── */
@@ -190,7 +191,7 @@ export function SearchFormPage() {
       navigate(`/search/${response.data.searchId}/results`)
     } catch (err) {
       console.error('Error submitting search:', err)
-      setError('Something went wrong. Please try again.')
+      setError(getSearchSubmitErrorMessage(err))
     } finally {
       setIsSubmitting(false)
     }
@@ -653,7 +654,12 @@ export function SearchFormPage() {
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
-                className="mt-4 rounded-xl border border-destructive/50 bg-destructive/10 px-4 py-3 text-center text-sm text-destructive"
+                className={cn(
+                  'mt-4 rounded-xl border px-4 py-3 text-center text-sm',
+                  error.startsWith('Too many search')
+                    ? 'border-amber-500/50 bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200'
+                    : 'border-destructive/50 bg-destructive/10 text-destructive'
+                )}
                 role="alert"
               >
                 {error}

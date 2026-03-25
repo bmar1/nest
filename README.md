@@ -13,7 +13,7 @@ Nest is an apartment search platform that scrapes live listings, reuses fresh ca
 - **Deduped Results**: Merges live + cached listings and removes duplicates before scoring
 - **Real Listing Images**: Returns real source images when available and shows them in the results UI
 - **Docker Support**: Full containerization with Docker Compose for local development,
-- 
+  
 ## 🏗️ Architecture
 
 ```
@@ -211,16 +211,6 @@ nestapp/
 - Cached listings are reused for future searches while they are still fresh
 - Apartment scores are stored per search so result polling is fast once scoring completes
 
-## 📝 Development Guidelines
-
-See [`agent/CODESTYLE.md`](agent/CODESTYLE.md) for coding standards.
-
-**Key Principles:**
-- Functions under 80 lines
-- Single responsibility per class/method
-- No more than 4 parameters per function
-- Comprehensive error handling
-- 90%+ test coverage for business logic
 
 ## 👥 Contributing
 

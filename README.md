@@ -6,7 +6,20 @@
 
 ## Why Nest exists
 
+<table>
+<tr>
+<td valign="top" width="58%">
+
 Renting should not mean refreshing five tabs, reconciling duplicate posts, and guessing which “great deal” is actually a fit. **Nest** is an apartment search product built for people who want clarity: one place to search, priorities you control, and ranked results that explain *why* a listing scored the way it did.
+
+</td>
+<td valign="middle" width="42%" align="center">
+
+<img src="src/nestapp-frontend/nestapp/public/hero-apartment.png" alt="Nest — apartment search experience" width="480" />
+
+</td>
+</tr>
+</table>
 
 **What you get**
 

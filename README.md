@@ -1,4 +1,4 @@
-# <img src="src/nestapp-frontend/nestapp/public/nest-logo.svg" alt="Nest" width="35" height="35"> Nest
+# <img src="\src\nestapp-frontend\nestapp\public\nest-logo-transparent-cropped.png" alt="Icon" width="35" height="35"> Nest
 
 **Find a better apartment, faster—with less noise.**
 

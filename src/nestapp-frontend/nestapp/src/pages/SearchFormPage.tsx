@@ -5,7 +5,6 @@ import axios from 'axios'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Slider } from '@/components/ui/slider'
-import { ThemeToggle } from '@/components/ThemeToggle'
 import {
   DollarSign,
   Layout,
@@ -30,9 +29,6 @@ import {
 } from 'lucide-react'
 import { getSearchSubmitErrorMessage } from '@/lib/searchSubmitErrors'
 import { cn } from '@/lib/utils'
-
-/* ─── Easing (from emil-design-eng) ─── */
-const easeOut = [0.23, 1, 0.32, 1] as const
 
 /* ─── Types ────────────────────────────── */
 
@@ -250,7 +246,7 @@ export function SearchFormPage() {
             <img src="/nest-logo-transparent-cropped.png" alt="Nest logo" width={28} height={28} className="text-primary" />
             <span className="text-lg font-bold text-foreground">Nest</span>
           </Link>
-          <ThemeToggle />
+          <div className="w-16" aria-hidden />
         </div>
       </header>
 
@@ -260,7 +256,7 @@ export function SearchFormPage() {
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: easeOut }}
+            transition={{ duration: 0.4 }}
             className="text-center"
           >
             <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
@@ -286,7 +282,7 @@ export function SearchFormPage() {
                   type="button"
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 + i * 0.06, duration: 0.35, ease: easeOut }}
+                  transition={{ delay: 0.2 + i * 0.06, duration: 0.35 }}
                   whileHover={{ scale: 1.02, y: -2 }}
                   whileTap={{ scale: 0.97 }}
                   onClick={() => selectPriority(p.value)}
@@ -303,10 +299,9 @@ export function SearchFormPage() {
                   <AnimatePresence>
                     {isActive && (
                       <motion.div
-                        initial={{ scale: 0.8, opacity: 0 }}
+                        initial={{ scale: 0, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.8, opacity: 0 }}
-                        transition={{ type: 'spring', damping: 18, stiffness: 400 }}
+                        exit={{ scale: 0, opacity: 0 }}
                         className="absolute top-2.5 right-2.5 flex h-6 w-6 items-center justify-center rounded-full bg-primary"
                       >
                         <Check className="h-3.5 w-3.5 text-white" aria-hidden />
@@ -443,7 +438,7 @@ export function SearchFormPage() {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.35, ease: easeOut }}
+                transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
                 className="overflow-hidden"
               >
                 <div className="space-y-6 pt-4">
@@ -543,7 +538,7 @@ export function SearchFormPage() {
                                 }))
                               }
                               className={cn(
-                                'min-w-[68px] cursor-pointer rounded-xl border px-4 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                                'min-w-[68px] cursor-pointer rounded-xl border px-4 py-3 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                                 formData.desiredBedrooms === bedrooms
                                   ? 'border-primary bg-primary text-primary-foreground shadow-md'
                                   : 'border-sage-muted/30 bg-white text-muted-foreground hover:border-primary/30 dark:border-border dark:bg-surface'
@@ -600,7 +595,7 @@ export function SearchFormPage() {
                           type="button"
                           onClick={() => setFormData((prev) => ({ ...prev, maxLeaseMonths: opt.value }))}
                           className={cn(
-                            'flex-1 cursor-pointer rounded-xl py-3 text-center text-sm font-medium transition-all duration-200 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                            'flex-1 cursor-pointer rounded-xl py-3 text-center text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                             formData.maxLeaseMonths === opt.value
                               ? 'bg-primary text-white shadow-md'
                               : 'bg-sage-muted/20 text-muted-foreground hover:bg-sage-muted/40 dark:bg-surface-elevated dark:hover:bg-surface-overlay'
@@ -693,7 +688,7 @@ export function SearchFormPage() {
               type="submit"
               size="lg"
               disabled={isSubmitting}
-              className="mt-3 h-14 w-full text-base font-semibold shadow-lg shadow-primary/15 transition-all duration-300 hover:shadow-xl hover:shadow-primary/20 active:scale-[0.97] sm:h-16 sm:text-lg"
+              className="mt-3 h-14 w-full text-base font-semibold shadow-lg shadow-primary/15 transition-shadow duration-300 hover:shadow-xl hover:shadow-primary/20 sm:h-16 sm:text-lg"
             >
               {isSubmitting ? (
                 <>

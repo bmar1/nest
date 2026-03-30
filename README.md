@@ -1,20 +1,50 @@
-# <img src="\src\nestapp-frontend\nestapp\public\nest-logo-transparent-cropped.png" alt="Icon" width="35" height="35"> Nest
+# <img src="src/nestapp-frontend/nestapp/public/nest-logo.svg" alt="Nest" width="60" height="60"> Nest
 
-**Find your dream home cheaper & faster and without the hassle.**
+**Find a better apartment, faster—with less noise.**
 
-Nest is an apartment search platform that scrapes live listings, reuses fresh cached listings from PostgreSQL, deduplicates results across sources, and ranks apartments based on your priorities instead of generic sort order. Tell Nest what matters most, and it returns scored results with source links, images, and transparent score breakdowns.
+---
 
-## 📋 Features
+## Why Nest exists
 
-- **Priority-Based Matching**: Choose `BUDGET`, `SPACE`, `AMENITIES`, or `BALANCED`
-- **Multi-Source Search**: Pulls listings from `Craigslist Toronto` and `Kijiji`
-- **Smart Scoring Algorithm**: 0-100 score based on price, space, amenities, and lease flexibility
-- **Fresh Listing Cache**: Reuses non-expired listings stored in PostgreSQL for faster follow-up searches
-- **Deduped Results**: Merges live + cached listings and removes duplicates before scoring
-- **Real Listing Images**: Returns real source images when available and shows them in the results UI
-- **Docker Support**: Full containerization with Docker Compose for local development,
-  
-## 🏗️ Architecture
+<table>
+<tr>
+<td valign="top" width="58%">
+
+Renting should not mean refreshing five tabs, reconciling duplicate posts, and guessing which “great deal” is actually a fit. **Nest** is an apartment search product built for people who want clarity: one place to search, priorities you control, and ranked results that explain *why* a listing scored the way it did.
+
+</td>
+<td valign="middle" width="42%" align="center">
+
+<img src="src/nestapp-frontend/nestapp/public/hero.png" alt="Nest — apartment search experience" width="480" />
+
+</td>
+</tr>
+</table>
+
+**What you get**
+
+- **Search tuned to you** — Say whether budget, space, amenities, or a balanced mix matters most; results reflect that instead of a generic sort order.
+- **Less duplicate work** — Listings are merged from multiple sources and deduplicated so you are not deciding between the same ad twice.
+- **Faster repeat searches** — Fresh listings from recent searches are reused when still valid, so follow-up queries stay snappy.
+- **Transparency** — Scores and breakdowns help you see the tradeoffs, with links and images from the original sources when available.
+
+Nest currently focuses on the **Toronto** rental market, with live listings from **Craigslist** and **Kijiji**.
+
+---
+
+## At a glance
+
+| | |
+|---|---|
+| **Product** | Priority-based apartment search with scoring and multi-source aggregation |
+| **Audience** | Renters who want ranked, explainable results instead of endless scrolling |
+| **Differentiator** | Custom priorities, deduplication across sources, cached freshness, transparent scoring |
+
+---
+
+## Technical overview
+
+**Architecture**
 
 ```
 React Frontend → Spring Boot REST API → PostgreSQL
@@ -27,15 +57,28 @@ Search flow:
 5. Frontend polls for results and renders ranked cards with score explanations
 ```
 
-**Tech Stack**:
-- Backend: Spring Boot 4.0.2 (Java 21)
-- Frontend: React 19 + TypeScript + Vite
-- Database: PostgreSQL 16
-- Scraping: Jsoup
-- Live Sources: Craigslist Toronto + Kijiji
-- Deployment: Docker + Kubernetes (DOKS)
+**Stack**
 
-## 🚀 Quick Start
+- **Backend:** Spring Boot 4.0.2 (Java 21)
+- **Frontend:** React 19, TypeScript, Vite
+- **Database:** PostgreSQL 16
+- **Scraping:** Jsoup
+- **Live sources:** Craigslist Toronto, Kijiji
+- **Deployment:** Docker, Docker Compose, Kubernetes (DOKS)
+
+**Features (implementation)**
+
+- **Priority-based matching** — `BUDGET`, `SPACE`, `AMENITIES`, or `BALANCED`
+- **Multi-source search** — Craigslist Toronto and Kijiji
+- **Scoring** — 0–100 score from price, space, amenities, and lease flexibility
+- **Listing cache** — Non-expired PostgreSQL rows reused for faster follow-up searches
+- **Deduped results** — Live + cached listings merged and deduplicated before scoring
+- **Images** — Real source images when available in the results UI
+- **Containers** — Docker Compose for local development
+
+---
+
+## Quick start
 
 ### Prerequisites
 
@@ -44,7 +87,7 @@ Search flow:
 - Docker & Docker Compose
 - PostgreSQL (or use Docker Compose)
 
-### Local Development with Docker Compose
+### Local development with Docker Compose
 
 ```bash
 # Start all services in the background
@@ -63,24 +106,27 @@ docker compose down
 ```
 
 **Services**
+
 - Frontend: `http://localhost`
 - API: `http://localhost:8080`
 - Health check: `http://localhost:8080/api/v1/health`
 - PostgreSQL: `localhost:5432`
 
 **Default local database credentials**
+
 - Database: `nest`
 - Username: `postgres`
 - Password: `postgres`
 
 **Useful reset**
+
 ```bash
 # Rebuild the stack and recreate the Docker network
 docker compose down
 docker compose up -d --build
 ```
 
-### Local Development (Manual)
+### Local development (manual)
 
 **1. Start PostgreSQL**
 
@@ -104,7 +150,7 @@ docker run -d \
 DB_HOST=localhost DB_PORT=5432 DB_NAME=nest DB_USER=postgres DB_PASSWORD=postgres ./mvnw spring-boot:run
 ```
 
-**3. Run React Frontend**
+**3. Run React frontend**
 
 ```bash
 cd src/nestapp-frontend/nestapp
@@ -114,39 +160,39 @@ npm run dev
 
 Navigate to `http://localhost:5173`
 
+### Data sources and freshness
 
+- **Live source 1:** Craigslist Toronto
+- **Live source 2:** Kijiji
+- **Fast path:** Recently stored PostgreSQL listings that have **not expired**
+- Cached listings use an `expires_at` timestamp and are reused while still fresh
+- Live and cached results are merged and deduplicated before scoring
 
-### Data Sources and Freshness
+---
 
-- **Live source 1:** `Craigslist Toronto`
-- **Live source 2:** `Kijiji`
-- **Fast source 3:** recently stored PostgreSQL listings that have **not expired**
-- Cached listings currently get an `expires_at` timestamp and are reused while still fresh
-- Live + cached results are merged and deduplicated before scoring
+## Scoring algorithm
 
-## 🧮 Scoring Algorithm
+### Score components (0–100 total)
 
-### Score Components (0-100 total)
+- **Price score** (0–30 pts): Lower price is better  
+  Formula: `(maxPrice - apartmentPrice) / (maxPrice - minPrice) * 30`
 
-- **Price Score** (0-30 pts): Lower price is better
-  - Formula: `(maxPrice - apartmentPrice) / (maxPrice - minPrice) * 30`
+- **Space score** (0–30 pts): More square footage is better  
+  Formula: `(apartmentSqft - minSqft) / (maxSqft - minSqft) * 30`
 
-- **Space Score** (0-30 pts): More square footage is better
-  - Formula: `(apartmentSqft - minSqft) / (maxSqft - minSqft) * 30`
-
-- **Amenities Score** (0-20 pts):
+- **Amenities score** (0–20 pts):
   - In-unit laundry: 10 pts
   - Parking: 5 pts
   - Gym: 3 pts
   - Other amenities: 2 pts each (capped at 20)
 
-- **Lease Flexibility Score** (0-20 pts):
+- **Lease flexibility score** (0–20 pts):
   - Month-to-month: 20 pts
   - 6-month: 15 pts
   - 12-month: 10 pts
   - 12+ months: 5 pts
 
-### Priority Weight Multipliers
+### Priority weight multipliers
 
 | Priority   | Price | Space | Amenities | Lease |
 |------------|-------|-------|-----------|-------|
@@ -155,11 +201,13 @@ Navigate to `http://localhost:5173`
 | AMENITIES  | 0.9x  | 0.9x  | 1.5x      | 0.9x  |
 | BALANCED   | 1.0x  | 1.0x  | 1.0x      | 1.0x  |
 
-## ☸️ Kubernetes Deployment
+---
 
-See [`k8s/README.md`](k8s/README.md) for detailed deployment instructions to DigitalOcean Kubernetes.
+## Kubernetes deployment
 
-**Quick Deploy:**
+See [`k8s/README.md`](k8s/README.md) for deployment to DigitalOcean Kubernetes.
+
+**Quick deploy:**
 
 ```bash
 # Build and push images
@@ -177,7 +225,9 @@ kubectl apply -f k8s/api-deployment.yaml
 kubectl apply -f k8s/frontend-deployment.yaml
 ```
 
-## 📁 Project Structure
+---
+
+## Project structure
 
 ```
 nestapp/
@@ -202,17 +252,18 @@ nestapp/
 └── pom.xml                     # Maven dependencies
 ```
 
+---
 
-
-## 🗄️ Persistence Notes
+## Persistence notes
 
 - Listings are stored in PostgreSQL after scraping
 - Listings include source metadata, raw HTML, expiry timestamps, and image data when available
 - Cached listings are reused for future searches while they are still fresh
 - Apartment scores are stored per search so result polling is fast once scoring completes
 
+---
 
-## 👥 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -220,8 +271,10 @@ nestapp/
 4. Write tests for new features
 5. Submit a pull request
 
-## 📧 Contact
+---
 
-Built with ☕, late nights, a deep hatred for apartment hunting, and a little help from Cursor Agent.
+## Contact
+
+Built with care for anyone who has spent too long apartment hunting.
 
 For questions or issues, please open a GitHub issue.

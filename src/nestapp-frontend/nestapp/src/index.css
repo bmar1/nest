@@ -1,68 +1,89 @@
 @import "tailwindcss";
 
-/* ─── Design tokens (light mode defaults) ─── */
+/* ─── Design tokens: Golden primary, Green secondary ─── */
 @theme {
-  --color-primary:            oklch(0.4 0.15 145);
-  --color-primary-foreground: oklch(0.99 0 0);
+  /* Primary: warm golden (from hero golden hour) */
+  --color-primary:            oklch(0.75 0.12 65);
+  --color-primary-foreground: oklch(0.15 0.02 65);
 
+  /* Secondary: muted green (trust / nature) */
+  --color-secondary:          oklch(0.45 0.12 145);
+  --color-secondary-foreground: oklch(0.99 0 0);
+
+  /* Golden tones */
+  --color-golden:             oklch(0.78 0.11 65);
+  --color-golden-muted:       oklch(0.90 0.05 65);
+  --color-golden-deep:        oklch(0.65 0.13 60);
+
+  /* Green tones (accent) */
   --color-sage:               oklch(0.55 0.08 145);
-  --color-sage-muted:         oklch(0.7 0.05 145);
-  --color-cream:              oklch(0.98 0.01 85);
-  --color-warm:               oklch(0.65 0.1 55);
+  --color-sage-muted:         oklch(0.82 0.04 145);
 
-  --color-background:         oklch(0.98 0.01 85);
-  --color-foreground:         oklch(0.2 0.02 260);
-  --color-muted-foreground:   oklch(0.5 0.02 260);
-  --color-muted:              oklch(0.95 0.01 260);
+  /* Warm beige background */
+  --color-cream:              oklch(0.92 0.025 75);
+  --color-warm:               oklch(0.7 0.12 55);
 
-  --color-card:               oklch(1 0 0);
-  --color-card-foreground:    oklch(0.2 0.02 260);
+  /* Light mode */
+  --color-background:         oklch(0.92 0.025 75);
+  --color-foreground:         oklch(0.18 0.02 65);
+  --color-muted-foreground:   oklch(0.45 0.018 70);
+  --color-muted:              oklch(0.88 0.018 75);
 
-  --color-border:             oklch(0.9 0.01 260);
-  --color-input:              oklch(0.9 0.01 260);
-  --color-ring:               oklch(0.4 0.15 145);
+  --color-card:               oklch(0.935 0.02 75);
+  --color-card-foreground:    oklch(0.18 0.02 65);
 
-  --color-accent:             oklch(0.95 0.02 145);
-  --color-accent-foreground:  oklch(0.2 0.02 260);
+  --color-border:             oklch(0.85 0.02 75);
+  --color-input:              oklch(0.85 0.02 75);
+  --color-ring:               oklch(0.75 0.12 65);
 
-  --color-secondary:          oklch(0.95 0.02 145);
-  --color-secondary-foreground: oklch(0.2 0.02 260);
+  --color-accent:             oklch(0.90 0.035 65);
+  --color-accent-foreground:  oklch(0.18 0.02 65);
 
   --color-destructive:        oklch(0.55 0.2 25);
   --color-destructive-foreground: oklch(0.99 0 0);
 
-  --color-surface:            oklch(0.96 0.01 85);
-  --color-surface-elevated:   oklch(0.98 0.01 85);
-  --color-surface-overlay:    oklch(0.94 0.01 85);
+  --color-surface:            oklch(0.91 0.022 75);
+  --color-surface-elevated:   oklch(0.93 0.018 75);
+  --color-surface-overlay:    oklch(0.89 0.02 75);
 
-  /* For framer-motion JS usage */
-  --nest-primary:    oklch(0.4 0.15 145);
-  --nest-sage-muted: oklch(0.7 0.05 145);
+  --nest-primary:    oklch(0.75 0.12 65);
+  --nest-sage-muted: oklch(0.82 0.04 145);
+
+  /* Typography */
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-heading: 'Outfit', system-ui, sans-serif;
+  --font-body: 'Outfit', system-ui, sans-serif;
+  --font-mono: 'Fira Code', monospace;
 }
 
-/* ─── Dark mode overrides ─── */
+/* ─── Dark mode: warm charcoal ─── */
 .dark {
-  --color-background:         oklch(0.15 0.02 260);
-  --color-foreground:         oklch(0.95 0.01 260);
-  --color-muted-foreground:   oklch(0.65 0.02 260);
-  --color-muted:              oklch(0.25 0.02 260);
+  --color-background:         oklch(0.19 0.012 65);
+  --color-foreground:         oklch(0.91 0.008 78);
+  --color-muted-foreground:   oklch(0.55 0.01 78);
+  --color-muted:              oklch(0.25 0.01 65);
 
-  --color-card:               oklch(0.2 0.02 260);
-  --color-card-foreground:    oklch(0.95 0.01 260);
+  --color-card:               oklch(0.22 0.012 65);
+  --color-card-foreground:    oklch(0.91 0.008 78);
 
-  --color-border:             oklch(0.35 0.02 260);
-  --color-input:              oklch(0.35 0.02 260);
-  --color-ring:               oklch(0.5 0.15 145);
+  --color-border:             oklch(0.29 0.012 65);
+  --color-input:              oklch(0.29 0.012 65);
+  --color-ring:               oklch(0.75 0.12 65);
 
-  --color-accent:             oklch(0.25 0.02 260);
-  --color-accent-foreground:  oklch(0.95 0.01 260);
+  --color-accent:             oklch(0.25 0.02 65);
+  --color-accent-foreground:  oklch(0.91 0.008 78);
 
-  --color-secondary:          oklch(0.25 0.02 260);
-  --color-secondary-foreground: oklch(0.95 0.01 260);
+  --color-secondary:          oklch(0.4 0.1 145);
+  --color-secondary-foreground: oklch(0.99 0 0);
 
-  --color-surface:            oklch(0.22 0.02 260);
-  --color-surface-elevated:   oklch(0.28 0.02 260);
-  --color-surface-overlay:    oklch(0.32 0.02 260);
+  --color-surface:            oklch(0.21 0.012 65);
+  --color-surface-elevated:   oklch(0.25 0.012 65);
+  --color-surface-overlay:    oklch(0.27 0.012 65);
+
+  --color-cream:              oklch(0.19 0.012 65);
+  --color-golden:             oklch(0.72 0.11 65);
+  --color-golden-muted:       oklch(0.35 0.06 65);
+  --color-golden-deep:        oklch(0.55 0.12 60);
 }
 
 /* ─── Base layer ─── */
@@ -73,7 +94,78 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Golden crosshair cursor */
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cline x1='12' y1='4' x2='12' y2='20' stroke='%23c9a96e' stroke-width='1.2' opacity='0.6'/%3E%3Cline x1='4' y1='12' x2='20' y2='12' stroke='%23c9a96e' stroke-width='1.2' opacity='0.6'/%3E%3Ccircle cx='12' cy='12' r='2' fill='%23c9a96e' opacity='0.85'/%3E%3C/svg%3E") 12 12, auto;
+  }
+  a, button, [role="button"], input, select, textarea, label {
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cline x1='14' y1='4' x2='14' y2='24' stroke='%23c9a96e' stroke-width='1.5' opacity='0.7'/%3E%3Cline x1='4' y1='14' x2='24' y2='14' stroke='%23c9a96e' stroke-width='1.5' opacity='0.7'/%3E%3Ccircle cx='14' cy='14' r='3' fill='%23c9a96e' opacity='0.9'/%3E%3C/svg%3E") 14 14, pointer;
+  }
+}
+
+/* ─── Custom scrollbar ─── */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: oklch(0.75 0.12 65 / 0.4);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.75 0.12 65 / 0.65);
+  background-clip: padding-box;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: oklch(0.72 0.11 65 / 0.35);
+  background-clip: padding-box;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.72 0.11 65 / 0.55);
+  background-clip: padding-box;
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(0.75 0.12 65 / 0.4) transparent;
+}
+
+/* ─── Animations ─── */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.75 0.12 65 / 0.35); }
+  50% { box-shadow: 0 0 20px 4px oklch(0.75 0.12 65 / 0.2); }
+}
+@keyframes ambient-drift-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(40px, -30px) scale(1.1); }
+  66% { transform: translate(-30px, 20px) scale(0.9); }
+}
+@keyframes ambient-drift-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-50px, 20px) scale(0.95); }
+  66% { transform: translate(30px, -40px) scale(1.05); }
+}
+
+.animate-float { animation: float 4s ease-in-out infinite; }
+.animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+.animate-ambient-1 { animation: ambient-drift-1 20s ease-in-out infinite; }
+.animate-ambient-2 { animation: ambient-drift-2 25s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-ambient-1,
+  .animate-ambient-2 {
+    animation: none;
   }
 }

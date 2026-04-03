@@ -45,18 +45,21 @@ const features = [
     title: 'Smart Aggregation',
     description: 'One search. Dozens of sources. Every listing in one clean view.',
     color: 'bg-primary/15 text-primary',
+    hoverBorder: 'hover:border-primary/25',
   },
   {
     icon: Timer,
     title: 'Ranked in 1 Minute',
     description: 'Scored by what you care about — price, space, amenities, lease.',
-    color: 'bg-primary/15 text-primary',
+    color: 'bg-secondary/10 text-secondary',
+    hoverBorder: 'hover:border-secondary/25',
   },
   {
     icon: Eye,
     title: 'Transparent Scoring',
     description: 'See exactly why each apartment ranked. No black boxes. No secrets.',
-    color: 'bg-secondary/10 text-secondary',
+    color: 'bg-primary/15 text-primary',
+    hoverBorder: 'hover:border-primary/25',
   },
 ]
 
@@ -66,18 +69,21 @@ const steps = [
     number: '01',
     title: 'Tell us what matters',
     description: 'Set your budget, space, and amenity priorities. We weight everything to your preferences.',
+    accent: 'golden' as const,
   },
   {
     icon: Zap,
     number: '02',
     title: 'We search for you',
     description: 'Multiple listing sites, one unified search. No more tab chaos.',
+    accent: 'green' as const,
   },
   {
     icon: Sparkles,
     number: '03',
     title: 'Get your shortlist',
     description: 'Ranked matches in under a minute. See exactly why each apartment scored.',
+    accent: 'golden' as const,
   },
 ]
 
@@ -208,6 +214,7 @@ function StepCard({ step, index }: { step: typeof steps[0]; index: number }) {
   const shouldReduce = useReducedMotion()
   const mouseX = useMotionValue(0)
   const mouseY = useMotionValue(0)
+  const isGreen = step.accent === 'green'
 
   function handleMouseMove(e: React.MouseEvent) {
     if (shouldReduce || !ref.current) return
@@ -230,21 +237,33 @@ function StepCard({ step, index }: { step: typeof steps[0]; index: number }) {
       className="group relative [perspective:800px]"
     >
       {/* Large faded number behind */}
-      <div className="pointer-events-none absolute -top-6 -left-2 font-display text-[8rem] font-bold leading-none text-golden/[0.07] select-none dark:text-golden/[0.1]">
+      <div className={cn(
+        'pointer-events-none absolute -top-6 -left-2 font-display text-[8rem] font-bold leading-none select-none',
+        isGreen ? 'text-secondary/[0.08] dark:text-secondary/[0.12]' : 'text-golden/[0.07] dark:text-golden/[0.1]'
+      )}>
         {step.number}
       </div>
 
-      <div className="relative rounded-2xl border border-border bg-card/60 p-8 backdrop-blur-sm transition-all duration-300 hover:border-golden/25 hover:bg-card/90 hover:shadow-xl lg:p-10">
+      <div className={cn(
+        'relative rounded-2xl border border-border bg-card/60 p-8 backdrop-blur-sm transition-all duration-300 hover:bg-card/90 hover:shadow-xl lg:p-10',
+        isGreen ? 'hover:border-secondary/30' : 'hover:border-golden/25'
+      )}>
         {/* Step number pill */}
         <div className="flex items-center gap-3">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-golden text-xs font-bold text-black">
+          <span className={cn(
+            'flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold',
+            isGreen ? 'bg-secondary text-white' : 'bg-golden text-black'
+          )}>
             {step.number}
           </span>
-          <div className="h-px flex-1 bg-gradient-to-r from-golden/30 to-transparent" />
+          <div className={cn('h-px flex-1', isGreen ? 'bg-secondary/25' : 'bg-golden/25')} />
         </div>
 
         {/* Icon */}
-        <div className="mt-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-golden/15 text-golden transition-transform duration-300 group-hover:scale-110">
+        <div className={cn(
+          'mt-6 flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-110',
+          isGreen ? 'bg-secondary/10 text-secondary' : 'bg-golden/15 text-golden'
+        )}>
           <step.icon className="h-7 w-7" aria-hidden />
         </div>
 
@@ -382,7 +401,10 @@ export function LandingPage() {
               </Link>
               <div className="hidden items-center gap-4 md:flex">
                 {[['#problem', 'Problem'], ['#features', 'Features'], ['#how-it-works', 'How It Works']].map(([href, label]) => (
-                  <a key={href} href={href} className="cursor-pointer text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{label}</a>
+                  <a key={href} href={href} className="group relative cursor-pointer text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+                    {label}
+                    <span className="absolute -bottom-0.5 left-0 h-[1.5px] w-0 rounded-full bg-secondary transition-all duration-200 group-hover:w-full" />
+                  </a>
                 ))}
               </div>
               <ThemeToggle />
@@ -495,25 +517,29 @@ export function LandingPage() {
         </motion.div>
       </section>
 
+      {/* ─── GOLDEN BRIDGE ─── Bleeds from hero bottom into problem section */}
+      <div className="pointer-events-none relative z-10 -mt-24 h-32" aria-hidden>
+        <div className="absolute inset-x-0 top-0 h-full" style={{ background: 'radial-gradient(ellipse 80% 100% at 50% 0%, oklch(0.78 0.11 65 / 0.18) 0%, transparent 70%)' }} />
+        <div className="absolute inset-x-0 bottom-0 h-full dark:block hidden" style={{ background: 'radial-gradient(ellipse 60% 100% at 50% 0%, oklch(0.72 0.11 65 / 0.12) 0%, transparent 70%)' }} />
+      </div>
+
       {/* ─── THE PROBLEM ─── */}
-      <section id="problem" className="relative z-10 overflow-hidden bg-[#0a0f1a] py-24 sm:py-32">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.03]"
-          style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '24px 24px' }}
-        />
-        {/* Ambient golden glow for problem section */}
-        <div className="pointer-events-none absolute top-0 right-0 h-[300px] w-[300px] rounded-full bg-golden/[0.08] blur-[100px]" />
+      <section id="problem" className="relative z-10 bg-background py-24 sm:py-32">
+        {/* Lingering golden warmth at top — extending bridge from hero */}
+        <div className="pointer-events-none absolute -top-10 left-1/2 h-[300px] w-[800px] -translate-x-1/2 rounded-full bg-golden/[0.08] blur-[100px] dark:bg-golden/[0.06]" />
+        {/* Subtle green ambient — bottom right */}
+        <div className="pointer-events-none absolute -bottom-20 -right-20 h-[300px] w-[300px] rounded-full bg-secondary/[0.06] blur-[100px]" />
 
         <div className="container relative z-10 mx-auto max-w-6xl px-4">
           <motion.div {...fadeUp} className="mx-auto max-w-2xl text-center">
-            <span className="inline-flex items-center gap-2 rounded-full bg-red-500/10 px-4 py-1.5 text-sm font-medium text-red-400">
+            <span className="inline-flex items-center gap-2 rounded-full border border-destructive/20 bg-destructive/8 px-4 py-1.5 text-sm font-medium text-destructive">
               <Zap className="h-3.5 w-3.5" aria-hidden />
               The Problem
             </span>
-            <h2 className="mt-5 text-3xl font-bold tracking-tight text-white text-balance sm:text-4xl">
+            <h2 className="mt-5 text-3xl font-bold tracking-tight text-foreground text-balance sm:text-4xl">
               The old way is broken
             </h2>
-            <p className="mt-4 text-lg text-white/50">
+            <p className="mt-4 text-lg text-muted-foreground">
               Apartment hunting hasn't changed in a decade. Here's what it costs you.
             </p>
           </motion.div>
@@ -526,26 +552,25 @@ export function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-50px' }}
                 transition={{ delay: i * 0.08, duration: 0.4, ease: EASE_OUT }}
-                className="group cursor-default rounded-2xl border border-white/5 bg-white/[0.03] p-8 text-center backdrop-blur-sm transition-all duration-200 hover:border-white/10 hover:bg-white/[0.06]"
+                className="group cursor-default rounded-2xl border border-border bg-card/70 p-8 text-center backdrop-blur-sm transition-all duration-200 hover:border-destructive/20 hover:bg-card"
               >
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-red-500/10 transition-transform duration-300 group-hover:scale-110">
-                  <point.icon className="h-6 w-6 text-red-400/80" aria-hidden />
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-destructive/8 transition-transform duration-300 group-hover:scale-110">
+                  <point.icon className="h-6 w-6 text-destructive/70" aria-hidden />
                 </div>
-                <div className="mt-5 font-heading text-4xl font-bold text-white"><AnimCount value={parseInt(point.value)} suffix={point.value.replace(/[0-9]/g, '')} /></div>
-                <h3 className="mt-2 text-lg font-semibold text-white/90">{point.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-white/45">{point.description}</p>
+                <div className="mt-5 font-heading text-4xl font-bold text-foreground"><AnimCount value={parseInt(point.value)} suffix={point.value.replace(/[0-9]/g, '')} /></div>
+                <h3 className="mt-2 text-lg font-semibold text-foreground">{point.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{point.description}</p>
               </motion.div>
             ))}
           </div>
 
           <motion.div {...fadeUp} className="mt-14 text-center">
-            <p className="text-xl text-white/60">
-              Nest finds your shortlist in <span className="font-semibold text-golden">under 1 minute</span>.
+            <p className="text-xl text-muted-foreground">
+              Nest finds your shortlist in <span className="font-semibold text-primary">under 1 minute</span>.
             </p>
             <Button
-              variant="secondary"
               size="lg"
-              className="mt-6 h-12 cursor-pointer rounded-full bg-white/10 px-8 text-white backdrop-blur-sm transition-all duration-200 hover:bg-white/20 active:scale-[0.97]"
+              className="mt-6 h-12 cursor-pointer rounded-full px-8 transition-all duration-200 active:scale-[0.97]"
               asChild
             >
               <Link to="/search" className="inline-flex items-center gap-2">
@@ -564,7 +589,8 @@ export function LandingPage() {
       >
         <div className="container mx-auto max-w-6xl px-4">
           <motion.div {...fadeUp} className="mx-auto max-w-2xl text-center">
-            <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary">
+            {/* Green badge for this section */}
+            <span className="inline-flex items-center gap-2 rounded-full border border-secondary/25 bg-secondary/8 px-4 py-1.5 text-sm font-medium text-secondary">
               <Sparkles className="h-3.5 w-3.5" aria-hidden />
               Why Nest
             </span>
@@ -587,7 +613,7 @@ export function LandingPage() {
                 className="group"
               >
                 <GlowCard className="h-full">
-                  <Card className="h-full cursor-default border-2 border-border bg-card/60 p-8 shadow-sm backdrop-blur-sm transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/20 hover:shadow-xl">
+                  <Card className={cn('h-full cursor-default border-2 border-border bg-card/60 p-8 shadow-sm backdrop-blur-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl', feature.hoverBorder)}>
                     <div className={cn('flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-110', feature.color)}>
                       <feature.icon className="h-7 w-7" aria-hidden />
                     </div>
@@ -609,18 +635,24 @@ export function LandingPage() {
 
       {/* ─── HOW IT WORKS (Clean card grid — no timeline) ─── */}
       <section id="how-it-works" className="relative z-10 border-t border-border py-24 sm:py-32">
-        {/* Section-local ambient glow */}
-        <div className="pointer-events-none absolute bottom-0 left-1/4 h-[400px] w-[400px] rounded-full bg-primary/[0.03] blur-[120px]" />
+        {/* Section-local ambient — green left, golden right */}
+        <div className="pointer-events-none absolute -bottom-10 -left-10 h-[320px] w-[320px] rounded-full bg-secondary/[0.05] blur-[100px]" />
+        <div className="pointer-events-none absolute -top-10 -right-10 h-[280px] w-[280px] rounded-full bg-primary/[0.04] blur-[100px]" />
 
         <div className="container mx-auto max-w-5xl px-4">
           <motion.div {...fadeUp} className="text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">How Nest works</h2>
-            <p className="mt-4 text-lg text-muted-foreground">Three steps. One minute. One shortlist.</p>
+            {/* Golden badge for this section */}
+            <span className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/8 px-4 py-1.5 text-sm font-medium text-primary">
+              <Zap className="h-3.5 w-3.5" aria-hidden />
+              How It Works
+            </span>
+            <h2 className="mt-5 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Three steps. One minute.</h2>
+            <p className="mt-4 text-lg text-muted-foreground">No account required. No commitment. Just your shortlist.</p>
           </motion.div>
 
-          {/* Horizontal progress line (desktop only) */}
+          {/* Connector line: golden → green → golden */}
           <div className="relative mt-20">
-            <div className="absolute top-[4.25rem] left-[8%] right-[8%] hidden h-px bg-gradient-to-r from-transparent via-golden/30 to-transparent lg:block" />
+            <div className="absolute top-[4.25rem] left-[8%] right-[8%] hidden h-px lg:block" style={{ background: 'linear-gradient(to right, transparent, oklch(0.75 0.12 65 / 0.3) 30%, oklch(0.45 0.12 145 / 0.3) 50%, oklch(0.75 0.12 65 / 0.3) 70%, transparent)' }} />
 
             <div className="grid gap-8 lg:grid-cols-3 lg:gap-6">
               {steps.map((step, i) => (
@@ -713,10 +745,10 @@ export function LandingPage() {
                   </div>
                   <div className="mt-6 space-y-3">
                     {[
-                      { label: 'Price Score', value: 88, delay: 0 },
-                      { label: 'Space Score', value: 92, delay: 0.1 },
-                      { label: 'Amenities', value: 96, delay: 0.2 },
-                      { label: 'Lease Flex', value: 85, delay: 0.3 },
+                      { label: 'Price Score', value: 88, delay: 0, color: 'bg-primary' },
+                      { label: 'Space Score', value: 92, delay: 0.1, color: 'bg-secondary' },
+                      { label: 'Amenities', value: 96, delay: 0.2, color: 'bg-primary' },
+                      { label: 'Lease Flex', value: 85, delay: 0.3, color: 'bg-secondary' },
                     ].map((score) => (
                       <div key={score.label} className="group">
                         <div className="flex items-center justify-between text-sm">
@@ -729,13 +761,13 @@ export function LandingPage() {
                             whileInView={{ width: `${score.value}%` }}
                             viewport={{ once: true }}
                             transition={{ delay: 0.3 + score.delay, duration: 0.8, ease: 'easeOut' }}
-                            className="h-full rounded-full bg-gradient-to-r from-golden-deep to-primary"
+                            className={cn('h-full rounded-full', score.color)}
                           />
                         </div>
                       </div>
                     ))}
                   </div>
-                  <div className="mt-6 flex items-center gap-2 rounded-lg bg-primary/5 px-3 py-2 text-sm text-primary">
+                  <div className="mt-6 flex items-center gap-2 rounded-lg border border-secondary/20 bg-secondary/8 px-3 py-2 text-sm text-secondary">
                     <BarChart3 className="h-4 w-4" aria-hidden />
                     <span className="font-medium">Your priorities shape every score</span>
                   </div>
@@ -748,10 +780,16 @@ export function LandingPage() {
 
       {/* ─── TESTIMONIALS ─── */}
       <section id="testimonials" className="relative z-10 border-t border-border py-24 sm:py-32">
+        {/* Green ambient for testimonials section */}
+        <div className="pointer-events-none absolute top-0 left-0 h-[300px] w-[400px] rounded-full bg-secondary/[0.04] blur-[120px]" />
         <div className="container mx-auto max-w-6xl px-4">
           <motion.div {...fadeUp} className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Loved by renters</h2>
-            <p className="mt-4 text-lg text-muted-foreground">Real people. Real relief. Real homes found.</p>
+            <span className="inline-flex items-center gap-2 rounded-full border border-secondary/25 bg-secondary/8 px-4 py-1.5 text-sm font-medium text-secondary">
+              <Quote className="h-3.5 w-3.5" aria-hidden />
+              Loved by renters
+            </span>
+            <h2 className="mt-5 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Real people. Real relief.</h2>
+            <p className="mt-4 text-lg text-muted-foreground">Real homes found.</p>
           </motion.div>
 
           <div className="mt-16 grid gap-8 md:grid-cols-3">
@@ -764,13 +802,22 @@ export function LandingPage() {
                 transition={{ duration: 0.4, delay: i * 0.08, ease: EASE_OUT }}
                 className="group"
               >
-                <Card className="h-full cursor-default border-border bg-card/60 p-8 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/15 hover:shadow-lg">
-                  <Quote className="h-10 w-10 text-golden/40 transition-colors duration-300 group-hover:text-golden/70" aria-hidden />
+                <Card className={cn(
+                  'h-full cursor-default border-border bg-card/60 p-8 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg',
+                  i % 2 === 0 ? 'hover:border-secondary/20' : 'hover:border-primary/15'
+                )}>
+                  <Quote className={cn(
+                    'h-10 w-10 transition-colors duration-300',
+                    i % 2 === 0 ? 'text-secondary/40 group-hover:text-secondary/70' : 'text-golden/40 group-hover:text-golden/70'
+                  )} aria-hidden />
                   <blockquote className="mt-4 text-lg leading-relaxed text-foreground">
                     &ldquo;{t.quote}&rdquo;
                   </blockquote>
                   <footer className="mt-6 flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-golden/15 text-sm font-bold text-golden-deep">{t.initials}</div>
+                    <div className={cn(
+                      'flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold',
+                      i % 2 === 0 ? 'bg-secondary/10 text-secondary' : 'bg-golden/15 text-golden-deep'
+                    )}>{t.initials}</div>
                     <div>
                       <cite className="not-italic font-semibold text-foreground">{t.author}</cite>
                       <p className="text-sm text-muted-foreground">{t.context}</p>
@@ -784,28 +831,32 @@ export function LandingPage() {
       </section>
 
       {/* ─── FINAL CTA ─── */}
-      <section className="relative z-10 overflow-hidden border-t border-primary/30 bg-gradient-to-br from-golden-deep to-primary py-24 sm:py-32">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.1),transparent_50%),radial-gradient(circle_at_70%_80%,rgba(255,255,255,0.06),transparent_50%)]" />
+      <section className="relative z-10 overflow-hidden border-t-2 border-primary/30 bg-background py-24 sm:py-32">
+        {/* Golden orb — large warm top glow, carries warmth from golden palette */}
+        <div className="pointer-events-none absolute -top-32 left-1/2 h-[500px] w-[600px] -translate-x-1/2 rounded-full bg-golden/[0.14] blur-[120px] dark:bg-golden/[0.09]" />
+        {/* Green ambient corners */}
+        <div className="pointer-events-none absolute -bottom-10 -left-10 h-[200px] w-[200px] rounded-full bg-secondary/[0.06] blur-[80px]" />
+        <div className="pointer-events-none absolute -bottom-10 -right-10 h-[200px] w-[200px] rounded-full bg-secondary/[0.06] blur-[80px]" />
+
         <div className="container relative z-10 mx-auto max-w-3xl px-4 text-center">
           <motion.div {...fadeUp}>
             <motion.div
               animate={shouldReduce ? {} : { y: [0, -4, 0] }}
               transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-              className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white/15"
+              className="inline-flex h-16 w-16 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10"
             >
-              <Home className="h-8 w-8 text-white/90" aria-hidden />
+              <Home className="h-8 w-8 text-primary" aria-hidden />
             </motion.div>
-            <h2 className="mt-8 text-3xl font-bold tracking-tight text-white text-balance sm:text-4xl lg:text-5xl">
+            <h2 className="mt-8 text-3xl font-bold tracking-tight text-foreground text-balance sm:text-4xl lg:text-5xl">
               Ready to find your nest?
             </h2>
-            <p className="mt-4 text-lg text-white/80">
+            <p className="mt-4 text-lg text-muted-foreground">
               Get your personalized shortlist in under 1 minute. Completely free. No signup. No strings attached.
             </p>
             <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="mt-10 inline-block">
               <Button
                 size="lg"
-                variant="secondary"
-                className="h-14 cursor-pointer rounded-full px-10 text-base shadow-xl shadow-black/10 sm:h-16 sm:px-12 sm:text-lg"
+                className="h-14 cursor-pointer rounded-full px-10 text-base shadow-lg shadow-primary/20 sm:h-16 sm:px-12 sm:text-lg"
                 asChild
               >
                 <Link to="/search" className="inline-flex items-center gap-2">

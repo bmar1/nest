@@ -518,9 +518,16 @@ export function LandingPage() {
       </section>
 
       {/* ─── GOLDEN BRIDGE ─── Bleeds from hero bottom into problem section */}
-      <div className="pointer-events-none relative z-10 -mt-24 h-32" aria-hidden>
-        <div className="absolute inset-x-0 top-0 h-full" style={{ background: 'radial-gradient(ellipse 80% 100% at 50% 0%, oklch(0.78 0.11 65 / 0.18) 0%, transparent 70%)' }} />
-        <div className="absolute inset-x-0 bottom-0 h-full dark:block hidden" style={{ background: 'radial-gradient(ellipse 60% 100% at 50% 0%, oklch(0.72 0.11 65 / 0.12) 0%, transparent 70%)' }} />
+      <div className="pointer-events-none relative z-10 -mt-0 h-32" aria-hidden>
+        {/* Light mode bridge - stronger opacity and deeper gold to show against cream */}
+        <div
+          className="absolute inset-x-0 top-0 h-full dark:hidden"
+          style={{
+            background: 'radial-gradient(ellipse 100% 120% at 50% 0%, oklch(0.62 0.18 65 / 0.75) 0%, oklch(0.68 0.15 65 / 0.35) 40%, transparent 80%)',
+          }}
+        />
+        {/* Dark mode bridge */}
+        <div className="absolute inset-x-0 top-0 h-full hidden dark:block" style={{ background: 'radial-gradient(ellipse 80% 100% at 50% 0%, oklch(0.78 0.11 65 / 0.25) 0%, transparent 70%)' }} />
       </div>
 
       {/* ─── THE PROBLEM ─── */}

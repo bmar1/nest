@@ -9,7 +9,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-border bg-background/60 text-muted-foreground backdrop-blur-sm transition-all duration-200 hover:border-primary/30 hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      className="pressable-control relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-border bg-background/70 text-muted-foreground backdrop-blur-sm transition-[transform,box-shadow,background-color,border-color,color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:border-primary/30 hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
     >
       <AnimatePresence mode="wait" initial={false}>

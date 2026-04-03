@@ -155,7 +155,7 @@ function GlowCard({ children, className }: { children: React.ReactNode; classNam
     const rect = cardRef.current.getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
-    glowRef.current.style.background = `radial-gradient(350px circle at ${x}px ${y}px, oklch(0.78 0.11 65 / 0.15), transparent 65%)`
+    glowRef.current.style.background = `radial-gradient(350px circle at ${x}px ${y}px, var(--card-spotlight), transparent 65%)`
   }
 
   function handleMouseLeave() {
@@ -245,7 +245,7 @@ function StepCard({ step, index }: { step: typeof steps[0]; index: number }) {
       </div>
 
       <div className={cn(
-        'relative rounded-2xl border border-border bg-card/60 p-8 backdrop-blur-sm transition-all duration-300 hover:bg-card/90 hover:shadow-xl lg:p-10',
+        'surface-card relative rounded-2xl border border-border bg-card/60 p-8 backdrop-blur-sm transition-all duration-300 hover:bg-card/90 hover:shadow-xl lg:p-10',
         isGreen ? 'hover:border-secondary/30' : 'hover:border-golden/25'
       )}>
         {/* Step number pill */}

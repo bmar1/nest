@@ -355,17 +355,14 @@ export function LandingPage() {
       {/* ─── HERO-OVERLAY NAV ─── */}
       <nav
         className={cn(
-          'fixed top-0 left-0 right-0 z-50 transition-opacity duration-300',
+          'absolute top-6 left-1/2 z-50 w-[95%] max-w-7xl -translate-x-1/2 transition-opacity duration-300 sm:w-[90%]',
           pastHero ? 'pointer-events-none opacity-0' : 'opacity-100'
         )}
       >
-        {/* Subtle scrim so nav text is legible + bottom line separating nav from image */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 h-px bg-white/10" />
-        <div className="relative mx-auto flex h-18 max-w-7xl items-center justify-between px-6 lg:px-16">
+        <div className="flex items-center justify-between rounded-full border border-white/20 bg-white/10 px-6 py-2.5 backdrop-blur-md">
           <Link to="/" className="flex min-h-[44px] min-w-[44px] items-center gap-3 font-bold" aria-label="Nest home">
             <img src="/nest-logo-transparent-cropped.png" alt="Nest logo" width={34} height={34} />
-            <span className="text-2xl tracking-tight text-white">Nest</span>
+            <span className="text-xl tracking-tight text-white lg:text-2xl">Nest</span>
           </Link>
           <div className="hidden items-center gap-6 md:flex">
             {[['#problem', 'The Problem'], ['#features', 'Features'], ['#how-it-works', 'How It Works']].map(([href, label]) => (
@@ -380,7 +377,7 @@ export function LandingPage() {
             <ThemeToggle />
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-white hover:bg-white/10"
+              className="flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center rounded-xl text-white hover:bg-white/10"
               aria-label="Toggle menu"
               aria-expanded={mobileMenuOpen}
             >
@@ -451,7 +448,7 @@ export function LandingPage() {
         <div className="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent" />
 
         <div className="absolute inset-x-0 bottom-0 z-10">
-          <div className="mx-auto max-w-7xl px-6 pb-10 lg:px-16 lg:pb-16">
+          <div className="mx-auto max-w-7xl px-6 pb-20 lg:px-16 lg:pb-32">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <h1 className="font-display text-[12vw] font-bold leading-[0.9] tracking-tight text-white sm:text-[10vw] lg:text-[7vw]">

@@ -1,308 +1,313 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { motion, useScroll, useTransform, useInView, AnimatePresence, useMotionValueEvent } from 'framer-motion'
+import { motion, useInView, useReducedMotion, useScroll, useTransform, useMotionValue, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { AnimatedCounter } from '@/components/ui/animated-counter'
+
 import { ThemeToggle } from '@/components/ThemeToggle'
 import {
-  Home, ChevronRight, Search, Zap, Sparkles, Shield, CheckCircle2,
-  Quote, Clock, Layers, BarChart3, Eye, ArrowRight, X,
-  MousePointerClick, Timer, AlertTriangle, Copy, LinkIcon,
-  BrainCircuit, Menu,
+  Home, ChevronRight, Search, Zap, Sparkles, Shield,
+  CheckCircle2, Quote, Clock, Layers, BarChart3, Eye,
+  ArrowRight, ArrowDown, X, MousePointerClick, Timer, Menu,
+  DollarSign, Building,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-/* ─── Easing ─── */
-const easeOut = [0.23, 1, 0.32, 1] as const
+/* ─── Easing (DESIGN-SKILL.md) ─── */
+const EASE_OUT: [number, number, number, number] = [0.23, 1, 0.32, 1]
 
-/* ─── Data ─── */
-const stats = [
-  { value: 2, suffix: ' min', label: 'To your shortlist' },
-  { value: 100, suffix: '+', label: 'Listings per search' },
-  { value: 0, suffix: '', label: 'Hidden fees' },
-]
+/* ─── Data ─────────────────────────────── */
 
-const frustrations = [
+const painPoints = [
   {
-    icon: Copy, title: 'Duplicate listings everywhere',
-    stat: '5×', statLabel: 'same apartment',
-    description: 'The same apartment appears on five different sites with five different prices. You waste time comparing what turns out to be the same place.',
+    icon: Clock,
+    value: '30+',
+    title: 'Hours wasted',
+    description: 'The average renter spends over 30 hours searching across sites each listing period.',
   },
   {
-    icon: LinkIcon, title: 'Dead links & expired posts',
-    stat: '48%', statLabel: 'already gone',
-    description: "Nearly half the listings you click are expired, rented, or simply broken. You won't know until you've already invested the time.",
+    icon: Layers,
+    value: '40+',
+    title: 'Tabs opened',
+    description: 'Endless browser tabs. Same listings, different prices. None of them feel right.',
   },
   {
-    icon: BrainCircuit, title: 'Decision fatigue takes over',
-    stat: '40+', statLabel: 'tabs deep',
-    description: 'After the 40th tab, everything blurs together. You can\'t remember which had laundry, which allowed pets, or which was actually in budget.',
+    icon: Eye,
+    value: '65%',
+    title: 'Are duplicates',
+    description: 'Most listings appear on multiple platforms. You compare apartments to themselves.',
   },
 ]
 
 const features = [
-  { icon: Layers, title: 'Smart Aggregation', description: 'One search. Dozens of sources. Every listing in one clean view — deduplicated and verified.', color: 'bg-primary/10 text-primary' },
-  { icon: Timer, title: 'Ranked in 2 Minutes', description: 'Scored by what you care about — price, space, amenities, lease flexibility. Your priorities, your ranking.', color: 'bg-warm/10 text-warm' },
-  { icon: Eye, title: 'Transparent Scoring', description: 'See exactly why each apartment ranked where it did. No black boxes. No hidden algorithms. No secrets.', color: 'bg-sage/10 text-sage' },
+  {
+    icon: Layers,
+    title: 'Smart Aggregation',
+    description: 'One search. Dozens of sources. Every listing in one clean view.',
+    color: 'bg-primary/15 text-primary',
+    hoverBorder: 'hover:border-primary/25',
+  },
+  {
+    icon: Timer,
+    title: 'Ranked in 1 Minute',
+    description: 'Scored by what you care about — price, space, amenities, lease.',
+    color: 'bg-secondary/10 text-secondary',
+    hoverBorder: 'hover:border-secondary/25',
+  },
+  {
+    icon: Eye,
+    title: 'Transparent Scoring',
+    description: 'See exactly why each apartment ranked. No black boxes. No secrets.',
+    color: 'bg-primary/15 text-primary',
+    hoverBorder: 'hover:border-primary/25',
+  },
 ]
 
 const steps = [
-  { icon: MousePointerClick, number: '01', title: 'Tell us what matters', description: "Budget, space, amenities — pick your priorities. We'll weight every result accordingly." },
-  { icon: Zap, number: '02', title: 'We search for you', description: 'Multiple sites. One unified search. Ranked by your personal preferences.' },
-  { icon: Sparkles, number: '03', title: 'Get your shortlist', description: 'Top matches in under 2 minutes. No endless scrolling. Just your best options.' },
-]
-
-const journeyStages = [
   {
-    id: 'frustration', icon: AlertTriangle, badge: 'The Problem',
-    title: 'You open 42 tabs. None of them feel like home.',
-    description: 'Every site shows you the same recycled listings in different order. Filters barely work. Half the results are already taken. You spend hours just to feel more confused than when you started.',
-    accentColor: 'text-red-500', bgAccent: 'bg-red-500/10',
+    icon: MousePointerClick,
+    number: '01',
+    title: 'Tell us what matters',
+    description: 'Set your budget, space, and amenity priorities. We weight everything to your preferences.',
+    accent: 'golden' as const,
   },
   {
-    id: 'search', icon: Search, badge: 'The Solution',
-    title: 'One search. Every source. Your priorities.',
-    description: 'Nest pulls listings from every major platform into one unified search. You tell us what matters — budget, space, amenities — and we score everything based on your personal criteria.',
-    accentColor: 'text-primary', bgAccent: 'bg-primary/10',
+    icon: Zap,
+    number: '02',
+    title: 'We search for you',
+    description: 'Multiple listing sites, one unified search. No more tab chaos.',
+    accent: 'green' as const,
   },
   {
-    id: 'shortlist', icon: Sparkles, badge: 'The Result',
-    title: 'A ranked shortlist in under 2 minutes.',
-    description: 'No more endless scrolling. Get a clean, ranked shortlist of your top matches — with transparent scores so you know exactly why each apartment made the cut.',
-    accentColor: 'text-sage', bgAccent: 'bg-sage/10',
+    icon: Sparkles,
+    number: '03',
+    title: 'Get your shortlist',
+    description: 'Ranked matches in under a minute. See exactly why each apartment scored.',
+    accent: 'golden' as const,
   },
 ]
 
 const testimonials = [
-  { quote: "Cut my search from weeks to an afternoon. The scoring actually made sense — I could see exactly why each place ranked.", author: 'Sarah M.', context: 'Toronto, 2024', initials: 'SM' },
-  { quote: "Finally, something that understands I care more about laundry than square footage. Found my place in one sitting.", author: 'James K.', context: 'First-time renter', initials: 'JK' },
-  { quote: "I was drowning in tabs. Nest gave me a shortlist of 8 apartments and the first one was perfect. Magic.", author: 'Priya R.', context: 'Vancouver, 2024', initials: 'PR' },
+  {
+    quote: "Cut my search from weeks to an afternoon. The scoring actually made sense — I could see exactly why each place ranked.",
+    author: 'Sarah M.',
+    context: 'Toronto, 2024',
+    initials: 'SM',
+  },
+  {
+    quote: "Finally, something that understands I care more about laundry than square footage. Found my place in one sitting.",
+    author: 'James K.',
+    context: 'First-time renter',
+    initials: 'JK',
+  },
+  {
+    quote: "I was drowning in tabs. Nest gave me a shortlist of 8 apartments and the first one was perfect. Magic.",
+    author: 'Priya R.',
+    context: 'Vancouver, 2024',
+    initials: 'PR',
+  },
 ]
 
 const benefits = [
   'Free to use — no signup, no fees',
   'Transparent scoring — see why each apartment ranks',
-  'Your time back — results in under 2 minutes',
+  'Your time back — results in under 1 minute',
   'No duplicate listings — we de-dupe for you',
 ]
 
-const galleryImages = [
-  {
-    src: '/apartment-hero.png',
-    alt: 'Bright apartment living space',
-    eyebrow: 'Room To Breathe',
-    title: 'Open layouts that feel calm the second you walk in',
-  },
-  {
-    src: '/apartment-modern.png',
-    alt: 'Modern apartment interior',
-    eyebrow: 'Modern Finishes',
-    title: 'Clean kitchens and updated details worth bookmarking',
-  },
-  {
-    src: '/apartment-studio.png',
-    alt: 'Compact studio apartment',
-    eyebrow: 'Small But Smart',
-    title: 'Studios that make the most of every square foot',
-  },
-]
+/* ─── Animated Counter (counts up on scroll) ─── */
 
-/* ─── Animated Word Reveal ─── */
-function AnimatedHeadline({ text, className }: { text: string; className?: string }) {
-  const words = text.split(' ')
-  return (
-    <span className={className}>
-      {words.map((word, i) => (
-        <motion.span key={i}
-          initial={{ opacity: 0, y: 24, filter: 'blur(6px)' }}
-          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-          transition={{ delay: 0.2 + i * 0.07, duration: 0.6, ease: easeOut }}
-          className="inline-block mr-[0.3em]"
-        >{word}</motion.span>
-      ))}
-    </span>
-  )
-}
-
-/* ─── Tab Counter ─── */
-function TabCounter() {
-  const [tabCount, setTabCount] = useState(1)
-  const maxTabs = 42
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+function AnimCount({ value, suffix = '' }: { value: number; suffix?: string }) {
   const ref = useRef(null)
-  const inView = useInView(ref, { once: true, margin: '-100px' })
+  const isInView = useInView(ref, { once: true, margin: '-50px' })
+  const [display, setDisplay] = useState(0)
 
   useEffect(() => {
-    if (!inView) return
-    intervalRef.current = setInterval(() => {
-      setTabCount((prev) => {
-        if (prev >= maxTabs) { if (intervalRef.current) clearInterval(intervalRef.current); return maxTabs }
-        return prev + 1
-      })
-    }, 55)
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
-  }, [inView])
+    if (!isInView) return
+    let start = 0
+    const duration = 1200
+    const startTime = performance.now()
+
+    function tick(now: number) {
+      const elapsed = now - startTime
+      const progress = Math.min(elapsed / duration, 1)
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3)
+      start = Math.round(eased * value)
+      setDisplay(start)
+      if (progress < 1) requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  }, [isInView, value])
+
+  return <span ref={ref}>{display}{suffix}</span>
+}
+
+/* ─── Glow Card (mouse-tracking radial glow) ─── */
+
+function GlowCard({ children, className }: { children: React.ReactNode; className?: string }) {
+  const cardRef = useRef<HTMLDivElement>(null)
+  const glowRef = useRef<HTMLDivElement>(null)
+  const shouldReduce = useReducedMotion()
+
+  function handleMouseMove(e: React.MouseEvent) {
+    if (shouldReduce || !cardRef.current || !glowRef.current) return
+    const rect = cardRef.current.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    glowRef.current.style.background = `radial-gradient(350px circle at ${x}px ${y}px, oklch(0.78 0.11 65 / 0.15), transparent 65%)`
+  }
+
+  function handleMouseLeave() {
+    if (glowRef.current) glowRef.current.style.background = 'none'
+  }
 
   return (
-    <div ref={ref} className="flex flex-col items-center gap-3">
-      <div className="relative flex items-baseline gap-1.5">
-        <motion.span key={tabCount} initial={{ scale: 1.3 }} animate={{ scale: 1 }}
-          className={cn('font-mono text-7xl font-bold tracking-tighter sm:text-8xl lg:text-9xl',
-            tabCount >= maxTabs ? 'text-red-400' : 'text-foreground'
-          )}
-        >{tabCount}</motion.span>
-        <span className="text-2xl font-medium text-muted-foreground sm:text-3xl">tabs open</span>
-      </div>
-      <AnimatePresence>
-        {tabCount >= maxTabs && (
-          <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-            className="text-lg font-medium text-red-500/80">
-            ...and still no clear winner.
-          </motion.p>
-        )}
-      </AnimatePresence>
+    <div
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      className={cn('group relative', className)}
+    >
+      {/* Glow layer */}
+      <div
+        ref={glowRef}
+        className="pointer-events-none absolute -inset-px z-20 rounded-[inherit] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+      />
+      <div className="relative z-10">{children}</div>
     </div>
   )
 }
 
-/* ─── Scroll-Reveal Journey ─── */
-function ScrollRevealJourney() {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [activeIndex, setActiveIndex] = useState(0)
-  const { scrollYProgress } = useScroll({ target: containerRef, offset: ['start start', 'end end'] })
+/* ─── Scroll Progress Bar ──────────────── */
 
-  useMotionValueEvent(scrollYProgress, 'change', (latest) => {
-    const idx = Math.min(Math.floor(latest * journeyStages.length), journeyStages.length - 1)
-    setActiveIndex(idx)
-  })
-
-  const activeStage = journeyStages[activeIndex]
-
+function ScrollProgress() {
+  const { scrollYProgress } = useScroll()
   return (
-    <section className="border-t border-border">
-      <div ref={containerRef} className="relative" style={{ height: `${journeyStages.length * 100}vh` }}>
-        <div className="sticky top-0 flex h-screen items-center overflow-hidden">
-          <div className="container mx-auto max-w-5xl px-4">
-            {/* Progress dots */}
-            <div className="mb-10 flex justify-center gap-2">
-              {journeyStages.map((_, i) => (
-                <motion.div key={i}
-                  animate={{ width: i === activeIndex ? 40 : 12, backgroundColor: i === activeIndex ? 'var(--nest-primary)' : 'var(--nest-sage-muted)' }}
-                  className="h-2 rounded-full" transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                />
-              ))}
-            </div>
-
-            <AnimatePresence mode="wait">
-              <motion.div key={activeStage.id}
-                initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }}
-                transition={{ duration: 0.4, ease: easeOut }}
-                className="mx-auto max-w-3xl text-center"
-              >
-                <span className={cn('inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold', activeStage.bgAccent, activeStage.accentColor)}>
-                  <activeStage.icon className="h-3.5 w-3.5" aria-hidden />
-                  {activeStage.badge}
-                </span>
-                <h2 className="mt-6 text-3xl font-bold tracking-tight text-foreground text-balance sm:text-4xl lg:text-5xl">
-                  {activeStage.title}
-                </h2>
-                <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-                  {activeStage.description}
-                </p>
-
-                {activeIndex === journeyStages.length - 1 && (
-                  <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mt-10">
-                    <Button size="lg" className="h-14 px-10 text-base active:scale-[0.97]" asChild>
-                      <Link to="/search" className="inline-flex items-center gap-2">
-                        Start your search <ArrowRight className="h-5 w-5" aria-hidden />
-                      </Link>
-                    </Button>
-                  </motion.div>
-                )}
-              </motion.div>
-            </AnimatePresence>
-
-            {/* Scroll hint */}
-            <motion.p animate={{ opacity: activeIndex < journeyStages.length - 1 ? 0.5 : 0 }}
-              className="mt-12 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <motion.span animate={{ y: [0, 4, 0] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}>↓</motion.span>
-              Scroll to continue
-            </motion.p>
-          </div>
-        </div>
-      </div>
-    </section>
+    <motion.div
+      className="fixed top-0 right-0 left-0 z-[100] h-[2px] origin-left bg-gradient-to-r from-primary via-golden to-primary"
+      style={{ scaleX: scrollYProgress }}
+    />
   )
 }
 
-/* ─── Image Gallery Section ─── */
-function ImageGallery() {
+/* ─── Ambient Background Orbs ──────────── */
+
+function AmbientOrbs() {
   return (
-    <section className="border-t border-border py-20 sm:py-28">
-      <div className="container mx-auto max-w-6xl px-4">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-          className="mx-auto max-w-2xl text-center mb-14">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Find spaces that feel like you</h2>
-          <p className="mt-4 text-lg text-muted-foreground">Nest surfaces apartments that match your lifestyle — not just your budget.</p>
-        </motion.div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {galleryImages.map((img, i) => (
-            <motion.div key={img.src}
-              initial={{ opacity: 0, y: 30, scale: 0.95 }}
-              whileInView={{ opacity: 1, y: 0, scale: 1 }}
-              viewport={{ once: true, margin: '-60px' }}
-              transition={{ delay: i * 0.12, duration: 0.6, ease: easeOut }}
-              whileHover={{ y: -8, scale: 1.02 }}
-              className="group relative overflow-hidden rounded-2xl border border-border/60 shadow-sm transition-shadow duration-300 hover:shadow-xl"
-            >
-              <img src={img.src} alt={img.alt} className="aspect-[4/3] w-full object-cover transition-transform duration-700 group-hover:scale-105" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.3 + i * 0.1 }}
-                className="absolute bottom-0 left-0 right-0 p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-              >
-                <div className="rounded-xl bg-card/88 p-4 text-foreground shadow-lg backdrop-blur-sm">
-                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-                    <CheckCircle2 className="h-4 w-4" />
-                    <span>{img.eyebrow}</span>
-                  </div>
-                  <p className="mt-2 text-sm font-medium leading-relaxed text-foreground/90">
-                    {img.title}
-                  </p>
-                </div>
-              </motion.div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
+    <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden>
+      {/* Warm golden orb — top right */}
+      <div className="animate-ambient-1 absolute -top-32 -right-32 h-[500px] w-[500px] rounded-full bg-golden/[0.07] blur-[120px] dark:bg-golden/[0.05]" />
+      {/* Green orb — bottom left */}
+      <div className="animate-ambient-2 absolute -bottom-40 -left-40 h-[600px] w-[600px] rounded-full bg-primary/[0.04] blur-[140px] dark:bg-primary/[0.05]" />
+      {/* Soft warm orb — center */}
+      <div className="animate-ambient-1 absolute top-1/2 left-1/2 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-golden/[0.05] blur-[100px] dark:bg-golden/[0.03]" style={{ animationDelay: '-8s' }} />
+    </div>
   )
 }
 
-/* ─── Mobile Menu ─── */
+/* ─── Step Card Component ──────────────── */
+
+function StepCard({ step, index }: { step: typeof steps[0]; index: number }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const isInView = useInView(ref, { once: true, margin: '-60px' })
+  const shouldReduce = useReducedMotion()
+  const mouseX = useMotionValue(0)
+  const mouseY = useMotionValue(0)
+  const isGreen = step.accent === 'green'
+
+  function handleMouseMove(e: React.MouseEvent) {
+    if (shouldReduce || !ref.current) return
+    const rect = ref.current.getBoundingClientRect()
+    const cx = rect.left + rect.width / 2
+    const cy = rect.top + rect.height / 2
+    mouseX.set((e.clientX - cx) * 0.02)
+    mouseY.set((e.clientY - cy) * 0.02)
+  }
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={shouldReduce ? {} : { opacity: 0, y: 30 }}
+      animate={isInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ delay: index * 0.15, duration: 0.6, ease: EASE_OUT }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => { mouseX.set(0); mouseY.set(0) }}
+      style={{ rotateX: mouseY, rotateY: mouseX }}
+      className="group relative [perspective:800px]"
+    >
+      {/* Large faded number behind */}
+      <div className={cn(
+        'pointer-events-none absolute -top-6 -left-2 font-display text-[8rem] font-bold leading-none select-none',
+        isGreen ? 'text-secondary/[0.08] dark:text-secondary/[0.12]' : 'text-golden/[0.07] dark:text-golden/[0.1]'
+      )}>
+        {step.number}
+      </div>
+
+      <div className={cn(
+        'relative rounded-2xl border border-border bg-card/60 p-8 backdrop-blur-sm transition-all duration-300 hover:bg-card/90 hover:shadow-xl lg:p-10',
+        isGreen ? 'hover:border-secondary/30' : 'hover:border-golden/25'
+      )}>
+        {/* Step number pill */}
+        <div className="flex items-center gap-3">
+          <span className={cn(
+            'flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold',
+            isGreen ? 'bg-secondary text-white' : 'bg-golden text-black'
+          )}>
+            {step.number}
+          </span>
+          <div className={cn('h-px flex-1', isGreen ? 'bg-secondary/25' : 'bg-golden/25')} />
+        </div>
+
+        {/* Icon */}
+        <div className={cn(
+          'mt-6 flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-110',
+          isGreen ? 'bg-secondary/10 text-secondary' : 'bg-golden/15 text-golden'
+        )}>
+          <step.icon className="h-7 w-7" aria-hidden />
+        </div>
+
+        {/* Content */}
+        <h3 className="mt-5 text-xl font-semibold text-foreground">{step.title}</h3>
+        <p className="mt-2 leading-relaxed text-muted-foreground">{step.description}</p>
+      </div>
+    </motion.div>
+  )
+}
+
+/* ─── Mobile Menu ──────────────────────── */
+
 function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   return (
     <AnimatePresence>
       {isOpen && (
         <>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={onClose} className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm dark:bg-black/50" />
           <motion.div
-            initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm"
+          />
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed top-20 right-4 left-4 z-50 rounded-2xl border border-border bg-card/98 p-6 shadow-xl backdrop-blur-md sm:left-auto sm:w-72"
+            className="fixed top-20 right-4 left-4 z-[70] rounded-2xl border border-border bg-cream/98 p-6 shadow-xl backdrop-blur-md sm:left-auto sm:w-72 dark:bg-card/98"
           >
             <nav className="flex flex-col gap-3">
-              {[['#problem', 'The Problem'], ['#features', 'Features'], ['#how-it-works', 'How It Works'], ['#testimonials', 'Testimonials']].map(([href, label]) => (
-                <a key={href} href={href} onClick={onClose}
-                  className="rounded-xl px-4 py-3 text-base font-medium text-foreground transition-colors hover:bg-accent">{label}</a>
-              ))}
+              <a href="#problem" onClick={onClose} className="cursor-pointer rounded-xl px-4 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted">The Problem</a>
+              <a href="#features" onClick={onClose} className="cursor-pointer rounded-xl px-4 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted">Features</a>
+              <a href="#how-it-works" onClick={onClose} className="cursor-pointer rounded-xl px-4 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted">How It Works</a>
+              <a href="#testimonials" onClick={onClose} className="cursor-pointer rounded-xl px-4 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted">Testimonials</a>
               <hr className="border-border" />
-              <Button size="lg" asChild className="w-full"><Link to="/search" onClick={onClose}>Start search <ChevronRight className="ml-1 h-4 w-4" /></Link></Button>
+              <Button size="lg" asChild className="w-full">
+                <Link to="/search" onClick={onClose}>
+                  Start search
+                  <ChevronRight className="ml-1 h-4 w-4" aria-hidden />
+                </Link>
+              </Button>
             </nav>
           </motion.div>
         </>
@@ -311,375 +316,461 @@ function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
   )
 }
 
-/* ═══════════════════════════════════════
+/* ═══════════════════════════════════════════
    LANDING PAGE
-   ═══════════════════════════════════════ */
+   ═══════════════════════════════════════════ */
 
 export function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const heroRef = useRef(null)
-  const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] })
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0])
-  const heroY = useTransform(scrollYProgress, [0, 1], [0, 100])
+  const [pastHero, setPastHero] = useState(false)
+  const shouldReduce = useReducedMotion()
+
+  const heroRef = useRef<HTMLElement>(null)
+  const { scrollYProgress: heroProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] })
+  const heroImageY = useTransform(heroProgress, [0, 1], ['0%', '20%'])
+  const heroImageScale = useTransform(heroProgress, [0, 1], [1, 1.1])
+
+  useEffect(() => {
+    const onScroll = () => setPastHero(window.scrollY > window.innerHeight - 100)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  const fadeUp = shouldReduce
+    ? {}
+    : { initial: { opacity: 0, y: 20 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5, ease: EASE_OUT } }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* ─── Navbar ─── */}
-      <nav className="sticky top-4 left-4 right-4 z-30 mx-auto max-w-6xl rounded-2xl border border-border/60 bg-card/85 px-5 py-3 shadow-sm backdrop-blur-xl">
-        <div className="flex h-12 items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5 font-bold text-foreground hover:text-primary transition-colors" aria-label="Nest home">
-            <img src="/nest-logo-transparent-cropped.png" alt="Nest logo" width={28} height={28} />
-            <span className="text-xl tracking-tight">Nest</span>
+    <div className="relative min-h-screen bg-cream dark:bg-background">
+
+      {/* Scroll progress bar */}
+      <ScrollProgress />
+
+      {/* Ambient background orbs */}
+      <AmbientOrbs />
+
+      {/* ─── HERO-OVERLAY NAV ─── */}
+      <nav
+        className={cn(
+          'fixed top-0 left-0 right-0 z-50 transition-opacity duration-300',
+          pastHero ? 'pointer-events-none opacity-0' : 'opacity-100'
+        )}
+      >
+        <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-6 lg:px-16">
+          <Link to="/" className="flex min-h-[44px] min-w-[44px] items-center gap-3 font-bold" aria-label="Nest home">
+            <img src="/nest-logo-transparent-cropped.png" alt="Nest logo" width={34} height={34} />
+            <span className="text-2xl tracking-tight text-white">Nest</span>
           </Link>
           <div className="hidden items-center gap-6 md:flex">
-            <a href="#problem" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">The Problem</a>
-            <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Features</a>
-            <a href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">How It Works</a>
+            {[['#problem', 'The Problem'], ['#features', 'Features'], ['#how-it-works', 'How It Works']].map(([href, label]) => (
+              <a key={href} href={href} className="cursor-pointer text-sm font-medium text-white/70 transition-colors duration-200 hover:text-white">{label}</a>
+            ))}
             <ThemeToggle />
-            <Button size="sm" asChild><Link to="/search">Start search <ChevronRight className="ml-1 h-4 w-4" /></Link></Button>
+            <Button size="sm" className="rounded-full" asChild>
+              <Link to="/search">Start search</Link>
+            </Button>
           </div>
           <div className="flex items-center gap-2 md:hidden">
             <ThemeToggle />
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-foreground hover:bg-accent transition-colors"
-              aria-label="Toggle menu" aria-expanded={mobileMenuOpen}>
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-white hover:bg-white/10"
+              aria-label="Toggle menu"
+              aria-expanded={mobileMenuOpen}
+            >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
           </div>
         </div>
       </nav>
-      <MobileMenu isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
 
-      {/* ─── HERO — Centered ─── */}
-      <section ref={heroRef} className="relative min-h-screen overflow-hidden flex items-center justify-center pt-8 pb-16">
-        {/* Background image with overlay */}
-        <div className="absolute inset-0 z-0">
-          <img src="/hero-apartment.png" alt="" className="h-full w-full object-cover" aria-hidden="true" />
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-[2px] dark:bg-background/85" />
-          <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background" />
-        </div>
-
-        <motion.div style={{ opacity: heroOpacity, y: heroY }}
-          className="container relative z-10 mx-auto max-w-4xl px-4 text-center"
-        >
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-            <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary backdrop-blur-sm">
-              <Sparkles className="h-3.5 w-3.5" aria-hidden />
-              Free · No signup required
-            </span>
-          </motion.div>
-
-          <h1 className="mt-8 text-balance">
-            <span className="text-5xl font-bold leading-[1.1] tracking-tight text-foreground sm:text-6xl lg:text-7xl">
-              <AnimatedHeadline text="Apartment hunting" />
-              <br />
-              <AnimatedHeadline text="is broken." />
-            </span>
-            <br />
-            <motion.span
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.9, duration: 0.6, ease: easeOut }}
-              className="mt-3 inline-block text-5xl font-bold tracking-tight text-primary sm:text-6xl lg:text-7xl"
-            >
-              We fixed it.
-            </motion.span>
-          </h1>
-
-          <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.1, duration: 0.5, ease: easeOut }}
-            className="mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl"
+      {/* ─── PILL NAV ─── */}
+      <AnimatePresence>
+        {pastHero && (
+          <motion.nav
+            initial={{ y: -80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -80, opacity: 0 }}
+            transition={{ duration: 0.45, ease: EASE_OUT }}
+            className="fixed top-4 left-1/2 z-50 -translate-x-1/2"
           >
-            Nest aggregates listings from every major source, scores them by your priorities, and delivers a ranked shortlist — in under 2 minutes. Stop drowning in tabs.
-          </motion.p>
-
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.3, duration: 0.5, ease: easeOut }}
-            className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center"
-          >
-            <Button size="lg"
-              className="h-14 px-10 text-base shadow-lg shadow-primary/20 transition-all duration-200 hover:shadow-xl hover:shadow-primary/30 active:scale-[0.97] sm:h-16 sm:px-12 sm:text-lg"
-              asChild
-            >
-              <Link to="/search" className="inline-flex items-center gap-2">
-                Find your nest <ArrowRight className="h-5 w-5" aria-hidden />
+            <div className="flex items-center gap-4 rounded-full border border-border bg-cream/90 px-6 py-2.5 shadow-lg backdrop-blur-xl dark:bg-card/90">
+              <Link to="/" className="flex items-center gap-2.5 font-bold text-foreground" aria-label="Nest home">
+                <img src="/nest-logo-transparent-cropped.png" alt="Nest logo" width={28} height={28} />
+                <span className="text-lg tracking-tight">Nest</span>
               </Link>
-            </Button>
-            <a href="#how-it-works" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              See how it works <ChevronRight className="h-4 w-4" aria-hidden />
-            </a>
-          </motion.div>
-
-          {/* Stats */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.6, duration: 0.5, ease: easeOut }}
-            className="mt-16 flex flex-wrap justify-center gap-6 sm:gap-10"
-          >
-            {stats.map((stat, i) => (
-              <motion.div key={stat.label}
-                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 1.7 + i * 0.08, duration: 0.4, ease: easeOut }}
-                className="flex flex-col items-center rounded-2xl border border-border/50 bg-card/60 px-6 py-4 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-primary/20 hover:shadow-md active:scale-[0.97]"
-              >
-                <span className="font-mono text-2xl font-bold text-primary"><AnimatedCounter value={stat.value} suffix={stat.suffix} /></span>
-                <span className="mt-1 text-xs text-muted-foreground">{stat.label}</span>
-              </motion.div>
-            ))}
-          </motion.div>
-
-          {/* Floating apartment card preview */}
-          <motion.div
-            initial={{ opacity: 0, y: 40, rotateX: 8 }}
-            animate={{ opacity: 1, y: 0, rotateX: 0 }}
-            transition={{ delay: 2.0, duration: 0.8, ease: easeOut }}
-            className="mx-auto mt-16 max-w-md animate-float"
-          >
-            <div className="rounded-2xl border border-border/60 bg-card/90 p-5 shadow-2xl backdrop-blur-md">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-semibold text-foreground">Sunlit Studio Downtown</h4>
-                  <p className="text-sm text-muted-foreground">620 sq ft · 1 bed · Pet friendly</p>
-                </div>
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
-                  <span className="font-mono text-sm font-bold text-primary">98</span>
-                </div>
-              </div>
-              <div className="mt-4 space-y-2">
-                {[{ l: 'Price', s: 92 }, { l: 'Space', s: 78 }, { l: 'Amenities', s: 95 }].map((s) => (
-                  <div key={s.l} className="flex items-center gap-2 text-xs">
-                    <span className="w-16 text-muted-foreground">{s.l}</span>
-                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                      <motion.div initial={{ width: 0 }} animate={{ width: `${s.s}%` }}
-                        transition={{ delay: 2.5, duration: 0.8, ease: 'easeOut' }}
-                        className="h-full rounded-full bg-primary/70" />
-                    </div>
-                    <span className="font-mono text-muted-foreground">{s.s}</span>
-                  </div>
+              <div className="hidden items-center gap-4 md:flex">
+                {[['#problem', 'Problem'], ['#features', 'Features'], ['#how-it-works', 'How It Works']].map(([href, label]) => (
+                  <a key={href} href={href} className="group relative cursor-pointer text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+                    {label}
+                    <span className="absolute -bottom-0.5 left-0 h-[1.5px] w-0 rounded-full bg-secondary transition-all duration-200 group-hover:w-full" />
+                  </a>
                 ))}
               </div>
+              <ThemeToggle />
+              <Button size="sm" className="rounded-full animate-pulse-glow" asChild>
+                <Link to="/search">
+                  Start search
+                  <ChevronRight className="ml-1 h-3.5 w-3.5" aria-hidden />
+                </Link>
+              </Button>
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-foreground hover:bg-muted md:hidden"
+                aria-label="Toggle menu"
+                aria-expanded={mobileMenuOpen}
+              >
+                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </button>
             </div>
-          </motion.div>
+          </motion.nav>
+        )}
+      </AnimatePresence>
 
-          {/* Scroll cue */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0.5 }} transition={{ delay: 2.5 }}
-            className="mt-12 flex flex-col items-center gap-1 text-sm text-muted-foreground">
-            <motion.div animate={{ y: [0, 6, 0] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-              className="h-8 w-5 rounded-full border-2 border-muted-foreground/30 flex items-start justify-center pt-1.5">
-              <motion.div animate={{ opacity: [1, 0], y: [0, 8] }} transition={{ duration: 1.5, repeat: Infinity }}
-                className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
-            </motion.div>
+      <MobileMenu isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+
+      {/* ─── HERO ─── */}
+      <section ref={heroRef} className="relative z-10 h-screen w-full overflow-hidden lg:h-[92vh]">
+        <motion.img
+          src="/hero-apartment.png"
+          alt="Beautiful modern apartment with warm natural lighting overlooking the city"
+          className="absolute inset-0 h-full w-full object-cover"
+          style={{ y: heroImageY, scale: heroImageScale }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/20" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent" />
+
+        <div className="absolute inset-x-0 bottom-0 z-10">
+          <div className="mx-auto max-w-7xl px-6 pb-10 lg:px-16 lg:pb-16">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <h1 className="font-display text-[12vw] font-bold leading-[0.9] tracking-tight text-white sm:text-[10vw] lg:text-[7vw]">
+                  {['Apartment', 'hunting,'].map((word, i) => (
+                    <motion.span
+                      key={word}
+                      initial={shouldReduce ? {} : { opacity: 0, y: 40, filter: 'blur(6px)' }}
+                      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                      transition={{ delay: 0.15 + i * 0.12, duration: 0.7, ease: EASE_OUT }}
+                      className="block"
+                    >
+                      {word}
+                    </motion.span>
+                  ))}
+                  <motion.span
+                    initial={shouldReduce ? {} : { opacity: 0, y: 40, filter: 'blur(6px)' }}
+                    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                    transition={{ delay: 0.39, duration: 0.7, ease: EASE_OUT }}
+                    className="block italic text-golden"
+                  >
+                    reimagined.
+                  </motion.span>
+                </h1>
+
+                <motion.div
+                  initial={shouldReduce ? {} : { opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.9, duration: 0.5, ease: EASE_OUT }}
+                  className="mt-8 flex flex-wrap items-center gap-3"
+                >
+                  <Button
+                    size="sm"
+                    className="cursor-pointer rounded-full bg-golden px-6 text-sm font-semibold text-black shadow-xl shadow-golden/20 transition-transform duration-150 hover:bg-golden/90 active:scale-[0.97]"
+                    asChild
+                  >
+                    <Link to="/search" className="inline-flex items-center gap-1.5">
+                      Find your nest
+                      <ArrowRight className="h-4 w-4" aria-hidden />
+                    </Link>
+                  </Button>
+                  <a
+                    href="#how-it-works"
+                    className="cursor-pointer rounded-full border border-white/25 bg-white/10 px-5 py-2 text-sm font-medium text-white/80 backdrop-blur-sm transition-all duration-200 hover:bg-white/20 hover:text-white active:scale-[0.97]"
+                  >
+                    How it works
+                  </a>
+                </motion.div>
+              </div>
+
+              <motion.div
+                initial={shouldReduce ? {} : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.2, duration: 0.6, ease: EASE_OUT }}
+                className="lg:max-w-[220px] lg:text-right"
+              >
+                <p className="text-sm leading-relaxed text-white/50">
+                  A modern solution to apartment hunting. One search, ranked results, under a minute.
+                </p>
+              </motion.div>
+            </div>
+          </div>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+          className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2"
+        >
+          <motion.div animate={{ y: [0, 6, 0] }} transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}>
+            <ArrowDown className="h-5 w-5 text-white/30" />
           </motion.div>
         </motion.div>
       </section>
 
+      {/* ─── GOLDEN BRIDGE ─── Bleeds from hero bottom into problem section */}
+      <div className="pointer-events-none relative z-10 -mt-24 h-32" aria-hidden>
+        <div className="absolute inset-x-0 top-0 h-full" style={{ background: 'radial-gradient(ellipse 80% 100% at 50% 0%, oklch(0.78 0.11 65 / 0.18) 0%, transparent 70%)' }} />
+        <div className="absolute inset-x-0 bottom-0 h-full dark:block hidden" style={{ background: 'radial-gradient(ellipse 60% 100% at 50% 0%, oklch(0.72 0.11 65 / 0.12) 0%, transparent 70%)' }} />
+      </div>
+
       {/* ─── THE PROBLEM ─── */}
-      <section id="problem" className="relative overflow-hidden border-t border-border py-24 sm:py-32">
-        <div className="container mx-auto max-w-6xl px-4">
-          {/* Section header */}
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            className="mx-auto max-w-3xl text-center mb-16"
-          >
-            <span className="inline-flex items-center gap-2 rounded-full bg-red-500/5 px-4 py-1.5 text-sm font-semibold text-red-500">
-              <AlertTriangle className="h-3.5 w-3.5" aria-hidden /> The Problem
+      <section id="problem" className="relative z-10 bg-background py-24 sm:py-32">
+        {/* Lingering golden warmth at top — extending bridge from hero */}
+        <div className="pointer-events-none absolute -top-10 left-1/2 h-[300px] w-[800px] -translate-x-1/2 rounded-full bg-golden/[0.08] blur-[100px] dark:bg-golden/[0.06]" />
+        {/* Subtle green ambient — bottom right */}
+        <div className="pointer-events-none absolute -bottom-20 -right-20 h-[300px] w-[300px] rounded-full bg-secondary/[0.06] blur-[100px]" />
+
+        <div className="container relative z-10 mx-auto max-w-6xl px-4">
+          <motion.div {...fadeUp} className="mx-auto max-w-2xl text-center">
+            <span className="inline-flex items-center gap-2 rounded-full border border-destructive/20 bg-destructive/8 px-4 py-1.5 text-sm font-medium text-destructive">
+              <Zap className="h-3.5 w-3.5" aria-hidden />
+              The Problem
             </span>
-            <h2 className="mt-5 text-3xl font-bold tracking-tight text-foreground text-balance sm:text-4xl lg:text-5xl">
-              Apartment hunting is a broken, exhausting process
+            <h2 className="mt-5 text-3xl font-bold tracking-tight text-foreground text-balance sm:text-4xl">
+              The old way is broken
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              Every renter knows the pain. Here's what you're up against.
+              Apartment hunting hasn't changed in a decade. Here's what it costs you.
             </p>
           </motion.div>
 
-          {/* Tab counter */}
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            className="mb-16 flex justify-center">
-            <TabCounter />
-          </motion.div>
-
-          {/* Frustration cards with stats */}
-          <div className="grid gap-6 md:grid-cols-3">
-            {frustrations.map((item, i) => (
-              <motion.div key={item.title}
-                initial={{ opacity: 0, y: 30, clipPath: 'inset(0 0 100% 0)' }}
-                whileInView={{ opacity: 1, y: 0, clipPath: 'inset(0 0 0% 0)' }}
-                viewport={{ once: true, margin: '-60px' }}
-                transition={{ delay: i * 0.15, duration: 0.6, ease: easeOut }}
-                whileHover={{ y: -6, transition: { duration: 0.25, ease: easeOut } }}
-                className="group flex flex-col rounded-2xl border border-border/60 bg-card/70 p-7 backdrop-blur-sm transition-all duration-300 hover:border-red-500/20 hover:shadow-lg"
+          <div className="mt-16 grid gap-6 sm:grid-cols-3">
+            {painPoints.map((point, i) => (
+              <motion.div
+                key={point.title}
+                initial={shouldReduce ? {} : { opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-50px' }}
+                transition={{ delay: i * 0.08, duration: 0.4, ease: EASE_OUT }}
+                className="group cursor-default rounded-2xl border border-border bg-card/70 p-8 text-center backdrop-blur-sm transition-all duration-200 hover:border-destructive/20 hover:bg-card"
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-500/10">
-                    <item.icon className="h-6 w-6 text-red-400" aria-hidden />
-                  </div>
-                  <div className="text-right">
-                    <span className="font-mono text-2xl font-bold text-red-400">{item.stat}</span>
-                    <p className="text-xs text-muted-foreground">{item.statLabel}</p>
-                  </div>
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-destructive/8 transition-transform duration-300 group-hover:scale-110">
+                  <point.icon className="h-6 w-6 text-destructive/70" aria-hidden />
                 </div>
-                <h3 className="mt-5 text-lg font-semibold text-foreground">{item.title}</h3>
-                <p className="mt-2 flex-1 leading-relaxed text-muted-foreground">{item.description}</p>
+                <div className="mt-5 font-heading text-4xl font-bold text-foreground"><AnimCount value={parseInt(point.value)} suffix={point.value.replace(/[0-9]/g, '')} /></div>
+                <h3 className="mt-2 text-lg font-semibold text-foreground">{point.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{point.description}</p>
               </motion.div>
             ))}
           </div>
 
-          {/* Transition CTA */}
-          <motion.div initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            transition={{ delay: 0.5 }} className="mt-12 text-center">
-            <Button variant="secondary" size="lg" className="h-12 px-8 active:scale-[0.97] transition-all duration-200" asChild>
+          <motion.div {...fadeUp} className="mt-14 text-center">
+            <p className="text-xl text-muted-foreground">
+              Nest finds your shortlist in <span className="font-semibold text-primary">under 1 minute</span>.
+            </p>
+            <Button
+              size="lg"
+              className="mt-6 h-12 cursor-pointer rounded-full px-8 transition-all duration-200 active:scale-[0.97]"
+              asChild
+            >
               <Link to="/search" className="inline-flex items-center gap-2">
-                There's a better way <ArrowRight className="h-4 w-4" aria-hidden />
+                There's a better way
+                <ArrowRight className="h-4 w-4" aria-hidden />
               </Link>
             </Button>
           </motion.div>
         </div>
       </section>
 
-      {/* ─── SCROLL-REVEAL JOURNEY ─── */}
-      <ScrollRevealJourney />
-
-      {/* ─── IMAGE GALLERY ─── */}
-      <ImageGallery />
-
-      {/* ─── FEATURES ─── */}
-      <section id="features" className="border-t border-border bg-gradient-to-b from-background to-card py-24 sm:py-32">
+      {/* ─── FEATURES / WHY NEST ─── */}
+      <section
+        id="features"
+        className="relative z-10 border-t border-border py-24 sm:py-32"
+      >
         <div className="container mx-auto max-w-6xl px-4">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            className="mx-auto max-w-2xl text-center">
-            <span className="inline-flex items-center gap-2 rounded-full bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary">
-              <Sparkles className="h-3.5 w-3.5" aria-hidden /> Why Nest
+          <motion.div {...fadeUp} className="mx-auto max-w-2xl text-center">
+            {/* Green badge for this section */}
+            <span className="inline-flex items-center gap-2 rounded-full border border-secondary/25 bg-secondary/8 px-4 py-1.5 text-sm font-medium text-secondary">
+              <Sparkles className="h-3.5 w-3.5" aria-hidden />
+              Why Nest
             </span>
             <h2 className="mt-5 text-3xl font-bold tracking-tight text-foreground text-balance sm:text-4xl">
               Everything you need, nothing you don't
             </h2>
-            <p className="mt-4 text-lg text-muted-foreground">We built Nest because we were tired of the search ourselves.</p>
+            <p className="mt-4 text-lg text-muted-foreground">
+              We built Nest because we were tired of the search ourselves.
+            </p>
           </motion.div>
 
           <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((feature, i) => (
-              <motion.div key={feature.title}
-                initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
+              <motion.div
+                key={feature.title}
+                initial={shouldReduce ? {} : { opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-50px' }}
-                transition={{ duration: 0.4, delay: i * 0.1, ease: easeOut }}
-                whileHover={{ y: -6, scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                transition={{ duration: 0.4, delay: i * 0.08, ease: EASE_OUT }}
+                className="group"
               >
-                <Card className="group h-full cursor-default border-2 border-border/60 bg-card/80 p-8 shadow-sm backdrop-blur-sm transition-all duration-300 hover:border-primary/20 hover:shadow-xl">
-                  <div className={cn('flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-110', feature.color)}>
-                    <feature.icon className="h-7 w-7" aria-hidden />
-                  </div>
-                  <h3 className="mt-6 text-xl font-semibold text-foreground">{feature.title}</h3>
-                  <p className="mt-2 leading-relaxed text-muted-foreground">{feature.description}</p>
-                </Card>
+                <GlowCard className="h-full">
+                  <Card className={cn('h-full cursor-default border-2 border-border bg-card/60 p-8 shadow-sm backdrop-blur-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl', feature.hoverBorder)}>
+                    <div className={cn('flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-110', feature.color)}>
+                      <feature.icon className="h-7 w-7" aria-hidden />
+                    </div>
+                    <h3 className="mt-6 text-xl font-semibold text-foreground">{feature.title}</h3>
+                    <p className="mt-2 leading-relaxed text-muted-foreground">{feature.description}</p>
+                  </Card>
+                </GlowCard>
               </motion.div>
             ))}
           </div>
 
-          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.3 }}
-            className="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-muted-foreground">
-            <span className="flex items-center gap-2"><Shield className="h-4 w-4 text-primary" /> No data sold</span>
-            <span className="flex items-center gap-2"><Clock className="h-4 w-4 text-primary" /> Results in 2 min</span>
-            <span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" /> 100% free</span>
+          <motion.div {...fadeUp} className="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-muted-foreground">
+            <span className="flex items-center gap-2"><Shield className="h-4 w-4 text-secondary" aria-hidden /> No data sold</span>
+            <span className="flex items-center gap-2"><Clock className="h-4 w-4 text-primary" aria-hidden /> Results in 1 min</span>
+            <span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-secondary" aria-hidden /> 100% free</span>
           </motion.div>
         </div>
       </section>
 
-      {/* ─── HOW IT WORKS ─── */}
-      <section id="how-it-works" className="border-t border-border bg-card py-24 sm:py-32">
-        <div className="container mx-auto max-w-6xl px-4">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">How Nest works</h2>
-            <p className="mt-4 text-lg text-muted-foreground">Three steps. Two minutes. One shortlist.</p>
+      {/* ─── HOW IT WORKS (Clean card grid — no timeline) ─── */}
+      <section id="how-it-works" className="relative z-10 border-t border-border py-24 sm:py-32">
+        {/* Section-local ambient — green left, golden right */}
+        <div className="pointer-events-none absolute -bottom-10 -left-10 h-[320px] w-[320px] rounded-full bg-secondary/[0.05] blur-[100px]" />
+        <div className="pointer-events-none absolute -top-10 -right-10 h-[280px] w-[280px] rounded-full bg-primary/[0.04] blur-[100px]" />
+
+        <div className="container mx-auto max-w-5xl px-4">
+          <motion.div {...fadeUp} className="text-center">
+            {/* Golden badge for this section */}
+            <span className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/8 px-4 py-1.5 text-sm font-medium text-primary">
+              <Zap className="h-3.5 w-3.5" aria-hidden />
+              How It Works
+            </span>
+            <h2 className="mt-5 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Three steps. One minute.</h2>
+            <p className="mt-4 text-lg text-muted-foreground">No account required. No commitment. Just your shortlist.</p>
           </motion.div>
 
+          {/* Connector line: golden → green → golden */}
           <div className="relative mt-20">
-            <div className="absolute top-20 left-[16.67%] right-[16.67%] hidden h-0.5 bg-gradient-to-r from-primary/20 via-primary/40 to-primary/20 lg:block" />
-            <div className="grid gap-12 lg:grid-cols-3 lg:gap-8">
+            <div className="absolute top-[4.25rem] left-[8%] right-[8%] hidden h-px lg:block" style={{ background: 'linear-gradient(to right, transparent, oklch(0.75 0.12 65 / 0.3) 30%, oklch(0.45 0.12 145 / 0.3) 50%, oklch(0.75 0.12 65 / 0.3) 70%, transparent)' }} />
+
+            <div className="grid gap-8 lg:grid-cols-3 lg:gap-6">
               {steps.map((step, i) => (
-                <motion.div key={step.title}
-                  initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-50px' }}
-                  transition={{ duration: 0.5, delay: i * 0.15, ease: easeOut }}
-                  className="relative flex flex-col items-center text-center"
-                >
-                  <motion.div whileHover={{ scale: 1.1 }}
-                    className="relative z-10 flex h-16 w-16 items-center justify-center rounded-full border-2 border-primary bg-background shadow-md transition-all duration-300">
-                    <span className="font-mono text-lg font-bold text-primary">{step.number}</span>
-                  </motion.div>
-                  <div className="mt-6 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                    <step.icon className="h-6 w-6" aria-hidden />
-                  </div>
-                  <h3 className="mt-4 text-xl font-semibold text-foreground">{step.title}</h3>
-                  <p className="mt-2 max-w-xs leading-relaxed text-muted-foreground">{step.description}</p>
-                </motion.div>
+                <StepCard key={step.number} step={step} index={i} />
               ))}
             </div>
           </div>
 
-          <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            transition={{ delay: 0.4 }} className="mt-16 text-center">
-            <Button size="lg" className="h-14 px-10 text-base active:scale-[0.97] sm:h-16 sm:px-12 sm:text-lg" asChild>
+          <motion.div {...fadeUp} className="mt-14 text-center">
+            <Button size="lg" className="h-14 cursor-pointer rounded-full px-10 text-base transition-transform duration-150 active:scale-[0.97] sm:px-12" asChild>
               <Link to="/search" className="inline-flex items-center gap-2">
-                Try it now — it's free <ArrowRight className="h-5 w-5" aria-hidden />
+                Try it now — it's free
+                <ArrowRight className="h-5 w-5" aria-hidden />
               </Link>
             </Button>
           </motion.div>
         </div>
       </section>
 
-      {/* ─── TRUST ─── */}
-      <section className="border-t border-border bg-accent/30 py-24 sm:py-32">
+      {/* ─── TRUST & TRANSPARENCY ─── */}
+      <section className="relative z-10 border-t border-border py-24 sm:py-32">
         <div className="container mx-auto max-w-6xl px-4">
           <div className="grid items-center gap-16 lg:grid-cols-2">
-            <motion.div initial={{ opacity: 0, x: -24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <motion.div
+              initial={shouldReduce ? {} : { opacity: 0, x: -24 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, ease: EASE_OUT }}
+            >
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary/10 text-secondary">
                 <Shield className="h-7 w-7" aria-hidden />
               </div>
-              <h2 className="mt-6 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Trust through transparency</h2>
+              <h2 className="mt-6 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+                Trust through transparency
+              </h2>
               <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-                See exactly how each apartment scores. Price, space, amenities, lease flexibility — all weighted by your priority.
+                See exactly how each apartment scores. Price, space, amenities,
+                lease flexibility — all weighted by your priority. No black boxes.
               </p>
               <ul className="mt-8 space-y-4">
                 {benefits.map((point, i) => (
-                  <motion.li key={point}
-                    initial={{ opacity: 0, x: -10 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
-                    transition={{ delay: i * 0.08, ease: easeOut }}
-                    className="flex items-center gap-4 text-muted-foreground hover:text-foreground transition-colors"
+                  <motion.li
+                    key={point}
+                    initial={shouldReduce ? {} : { opacity: 0, x: -10 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.06, ease: EASE_OUT }}
+                    className="flex cursor-default items-center gap-4 text-muted-foreground transition-colors duration-200 hover:text-foreground"
                   >
-                    <CheckCircle2 className="h-6 w-6 shrink-0 text-primary" aria-hidden />
+                    <CheckCircle2 className="h-6 w-6 shrink-0 text-secondary" aria-hidden />
                     <span className="text-lg">{point}</span>
                   </motion.li>
                 ))}
               </ul>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, x: 24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
-              <div className="overflow-hidden rounded-2xl border-2 border-border/60 bg-card/80 p-6 shadow-xl backdrop-blur-sm sm:p-8">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-lg font-semibold text-foreground">Maple Street Gallery</h4>
-                    <p className="text-sm text-muted-foreground">2 bed · 1 bath · 850 sq ft</p>
+            <motion.div
+              initial={shouldReduce ? {} : { opacity: 0, x: 24 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, ease: EASE_OUT }}
+            >
+              <div className="overflow-hidden rounded-2xl border-2 border-border bg-card shadow-xl">
+                <div className="relative h-52 overflow-hidden">
+                  <img
+                    src="/apartment-modern.png"
+                    alt="Modern apartment interior with open-concept living space"
+                    className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
+                  />
+                  <div className="absolute top-3 right-3 rounded-full bg-golden px-3 py-1 text-xs font-semibold text-black backdrop-blur-sm">
+                    94% Match
                   </div>
-                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10">
-                    <span className="font-mono text-xl font-bold text-primary">94</span>
+                  <div className="absolute bottom-3 left-3 flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                    <DollarSign className="h-3 w-3" aria-hidden />
+                    $1,850/mo
                   </div>
                 </div>
-                <div className="mt-6 space-y-3">
-                  {[{ label: 'Price Score', value: 88, delay: 0 }, { label: 'Space Score', value: 92, delay: 0.1 }, { label: 'Amenities', value: 96, delay: 0.2 }, { label: 'Lease Flex', value: 85, delay: 0.3 }].map((score) => (
-                    <div key={score.label} className="group">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground group-hover:text-foreground transition-colors">{score.label}</span>
-                        <span className="font-mono font-semibold text-foreground">{score.value}</span>
-                      </div>
-                      <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
-                        <motion.div initial={{ width: 0 }} whileInView={{ width: `${score.value}%` }} viewport={{ once: true }}
-                          transition={{ delay: 0.3 + score.delay, duration: 0.8, ease: 'easeOut' }}
-                          className="h-full rounded-full bg-gradient-to-r from-primary to-sage" />
-                      </div>
+                <div className="p-6 sm:p-8">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-lg font-semibold text-foreground">Maple Street Gallery</h4>
+                      <p className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <Building className="h-3.5 w-3.5" aria-hidden />
+                        2 bed · 1 bath · 850 sq ft
+                      </p>
                     </div>
-                  ))}
-                </div>
-                <div className="mt-6 flex items-center gap-2 rounded-lg bg-primary/5 px-3 py-2 text-sm text-primary">
-                  <BarChart3 className="h-4 w-4" aria-hidden />
-                  <span className="font-medium">Your priorities shape every score</span>
+                    <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10">
+                      <span className="font-mono text-xl font-bold text-primary">94</span>
+                    </div>
+                  </div>
+                  <div className="mt-6 space-y-3">
+                    {[
+                      { label: 'Price Score', value: 88, delay: 0, color: 'bg-primary' },
+                      { label: 'Space Score', value: 92, delay: 0.1, color: 'bg-secondary' },
+                      { label: 'Amenities', value: 96, delay: 0.2, color: 'bg-primary' },
+                      { label: 'Lease Flex', value: 85, delay: 0.3, color: 'bg-secondary' },
+                    ].map((score) => (
+                      <div key={score.label} className="group">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground transition-colors group-hover:text-foreground">{score.label}</span>
+                          <span className="font-mono font-semibold text-foreground">{score.value}</span>
+                        </div>
+                        <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            whileInView={{ width: `${score.value}%` }}
+                            viewport={{ once: true }}
+                            transition={{ delay: 0.3 + score.delay, duration: 0.8, ease: 'easeOut' }}
+                            className={cn('h-full rounded-full', score.color)}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-6 flex items-center gap-2 rounded-lg border border-secondary/20 bg-secondary/8 px-3 py-2 text-sm text-secondary">
+                    <BarChart3 className="h-4 w-4" aria-hidden />
+                    <span className="font-medium">Your priorities shape every score</span>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -688,24 +779,45 @@ export function LandingPage() {
       </section>
 
       {/* ─── TESTIMONIALS ─── */}
-      <section id="testimonials" className="border-t border-border bg-card py-24 sm:py-32">
+      <section id="testimonials" className="relative z-10 border-t border-border py-24 sm:py-32">
+        {/* Green ambient for testimonials section */}
+        <div className="pointer-events-none absolute top-0 left-0 h-[300px] w-[400px] rounded-full bg-secondary/[0.04] blur-[120px]" />
         <div className="container mx-auto max-w-6xl px-4">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Loved by renters</h2>
-            <p className="mt-4 text-lg text-muted-foreground">Real people. Real relief. Real homes found.</p>
+          <motion.div {...fadeUp} className="mx-auto max-w-2xl text-center">
+            <span className="inline-flex items-center gap-2 rounded-full border border-secondary/25 bg-secondary/8 px-4 py-1.5 text-sm font-medium text-secondary">
+              <Quote className="h-3.5 w-3.5" aria-hidden />
+              Loved by renters
+            </span>
+            <h2 className="mt-5 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Real people. Real relief.</h2>
+            <p className="mt-4 text-lg text-muted-foreground">Real homes found.</p>
           </motion.div>
+
           <div className="mt-16 grid gap-8 md:grid-cols-3">
             {testimonials.map((t, i) => (
-              <motion.div key={t.author}
-                initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.1, ease: easeOut }} whileHover={{ y: -4 }}
+              <motion.div
+                key={t.author}
+                initial={shouldReduce ? {} : { opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: i * 0.08, ease: EASE_OUT }}
+                className="group"
               >
-                <Card className="group h-full cursor-default border-border/60 bg-background/40 p-8 transition-all duration-300 hover:border-primary/15 hover:shadow-lg">
-                  <Quote className="h-10 w-10 text-muted-foreground/30 group-hover:text-primary/30 transition-colors duration-300" aria-hidden />
-                  <blockquote className="mt-4 text-lg leading-relaxed text-foreground">&ldquo;{t.quote}&rdquo;</blockquote>
+                <Card className={cn(
+                  'h-full cursor-default border-border bg-card/60 p-8 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg',
+                  i % 2 === 0 ? 'hover:border-secondary/20' : 'hover:border-primary/15'
+                )}>
+                  <Quote className={cn(
+                    'h-10 w-10 transition-colors duration-300',
+                    i % 2 === 0 ? 'text-secondary/40 group-hover:text-secondary/70' : 'text-golden/40 group-hover:text-golden/70'
+                  )} aria-hidden />
+                  <blockquote className="mt-4 text-lg leading-relaxed text-foreground">
+                    &ldquo;{t.quote}&rdquo;
+                  </blockquote>
                   <footer className="mt-6 flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">{t.initials}</div>
+                    <div className={cn(
+                      'flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold',
+                      i % 2 === 0 ? 'bg-secondary/10 text-secondary' : 'bg-golden/15 text-golden-deep'
+                    )}>{t.initials}</div>
                     <div>
                       <cite className="not-italic font-semibold text-foreground">{t.author}</cite>
                       <p className="text-sm text-muted-foreground">{t.context}</p>
@@ -719,25 +831,38 @@ export function LandingPage() {
       </section>
 
       {/* ─── FINAL CTA ─── */}
-      <section className="relative overflow-hidden border-t border-primary/20 bg-primary py-24 sm:py-32">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(135,169,107,0.15),transparent_50%),radial-gradient(circle_at_70%_80%,rgba(184,149,107,0.1),transparent_50%)]" />
+      <section className="relative z-10 overflow-hidden border-t-2 border-primary/30 bg-background py-24 sm:py-32">
+        {/* Golden orb — large warm top glow, carries warmth from golden palette */}
+        <div className="pointer-events-none absolute -top-32 left-1/2 h-[500px] w-[600px] -translate-x-1/2 rounded-full bg-golden/[0.14] blur-[120px] dark:bg-golden/[0.09]" />
+        {/* Green ambient corners */}
+        <div className="pointer-events-none absolute -bottom-10 -left-10 h-[200px] w-[200px] rounded-full bg-secondary/[0.06] blur-[80px]" />
+        <div className="pointer-events-none absolute -bottom-10 -right-10 h-[200px] w-[200px] rounded-full bg-secondary/[0.06] blur-[80px]" />
+
         <div className="container relative z-10 mx-auto max-w-3xl px-4 text-center">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
-            <motion.div animate={{ y: [0, -4, 0] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-              className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10">
-              <Home className="h-8 w-8 text-primary-foreground/90" aria-hidden />
+          <motion.div {...fadeUp}>
+            <motion.div
+              animate={shouldReduce ? {} : { y: [0, -4, 0] }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+              className="inline-flex h-16 w-16 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10"
+            >
+              <Home className="h-8 w-8 text-primary" aria-hidden />
             </motion.div>
-            <h2 className="mt-8 text-3xl font-bold tracking-tight text-primary-foreground text-balance sm:text-4xl lg:text-5xl">
+            <h2 className="mt-8 text-3xl font-bold tracking-tight text-foreground text-balance sm:text-4xl lg:text-5xl">
               Ready to find your nest?
             </h2>
-            <p className="mt-4 text-lg text-primary-foreground/85">
-              Get your personalized shortlist in under 2 minutes. Completely free. No signup. No strings attached.
+            <p className="mt-4 text-lg text-muted-foreground">
+              Get your personalized shortlist in under 1 minute. Completely free. No signup. No strings attached.
             </p>
             <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="mt-10 inline-block">
-              <Button size="lg" variant="secondary"
-                className="h-14 px-10 text-base shadow-xl shadow-black/10 active:scale-[0.97] sm:h-16 sm:px-12 sm:text-lg" asChild>
+              <Button
+                size="lg"
+                className="h-14 cursor-pointer rounded-full px-10 text-base shadow-lg shadow-primary/20 sm:h-16 sm:px-12 sm:text-lg"
+                asChild
+              >
                 <Link to="/search" className="inline-flex items-center gap-2">
-                  <Search className="h-5 w-5" aria-hidden /> Start your free search <ChevronRight className="h-5 w-5" aria-hidden />
+                  <Search className="h-5 w-5" aria-hidden />
+                  Start your free search
+                  <ChevronRight className="h-5 w-5" aria-hidden />
                 </Link>
               </Button>
             </motion.div>
@@ -746,14 +871,90 @@ export function LandingPage() {
       </section>
 
       {/* ─── FOOTER ─── */}
-      <footer className="border-t border-border bg-background py-10">
-        <div className="container mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 text-sm text-muted-foreground sm:flex-row">
-          <div className="flex items-center gap-2">
-            <img src="/nest-logo-transparent-cropped.png" alt="Nest logo" width={20} height={20} />
-            <span className="font-semibold text-foreground">Nest</span>
-            <span>&copy; {new Date().getFullYear()}</span>
+      <footer className="relative z-10 border-t border-border bg-cream dark:bg-background">
+        <div className="container mx-auto max-w-6xl px-4 py-16">
+          {/* Top: brand + columns */}
+          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Brand */}
+            <div className="lg:col-span-2">
+              <Link to="/" className="flex items-center gap-2.5">
+                <img src="/nest-logo-transparent-cropped.png" alt="Nest logo" width={26} height={26} />
+                <span className="text-lg font-bold tracking-tight text-foreground">Nest</span>
+              </Link>
+              <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
+                Apartment hunting, reimagined. One search, transparent scores, your shortlist in under a minute.
+              </p>
+              {/* GitHub */}
+              <a
+                href="https://github.com/bmar1/nest"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-5 inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-all duration-200 hover:border-primary/40 hover:text-primary"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+                </svg>
+                bmar1/nest
+              </a>
+            </div>
+
+            {/* Product */}
+            <div>
+              <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-foreground">Product</h3>
+              <ul className="space-y-3 text-sm">
+                {[
+                  { label: 'The Problem', href: '#problem' },
+                  { label: 'Features', href: '#features' },
+                  { label: 'How It Works', href: '#how-it-works' },
+                  { label: 'Testimonials', href: '#testimonials' },
+                ].map(({ label, href }) => (
+                  <li key={label}>
+                    <a
+                      href={href}
+                      className="cursor-pointer text-muted-foreground transition-colors duration-150 hover:text-primary"
+                    >
+                      {label}
+                    </a>
+                  </li>
+                ))}
+                <li>
+                  <Link to="/search" className="font-medium text-primary transition-colors duration-150 hover:text-primary/80">
+                    Start searching →
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Company */}
+            <div>
+              <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-foreground">Company</h3>
+              <ul className="space-y-3 text-sm">
+                {[
+                  { label: 'About', href: '#' },
+                  { label: 'Contact', href: 'mailto:hello@nestsearch.co' },
+                  { label: 'GitHub', href: 'https://github.com/bmar1/nest' },
+                  { label: 'Privacy Policy', href: '#' },
+                ].map(({ label, href }) => (
+                  <li key={label}>
+                    <a
+                      href={href}
+                      target={href.startsWith('http') ? '_blank' : undefined}
+                      rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                      className="cursor-pointer text-muted-foreground transition-colors duration-150 hover:text-primary"
+                    >
+                      {label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
-          <p className="text-center">Built with care for apartment hunters everywhere.</p>
+
+          {/* Bottom bar */}
+          <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row">
+            <p>&copy; {new Date().getFullYear()} Nest. Built with care for apartment hunters everywhere.</p>
+            <p>Made with ♥ — open source on <a href="https://github.com/bmar1/nest" target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">GitHub</a></p>
+          </div>
         </div>
       </footer>
     </div>

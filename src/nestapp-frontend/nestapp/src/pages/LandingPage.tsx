@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { motion, useInView, useReducedMotion, useScroll, useTransform, useMotionValue, AnimatePresence } from 'framer-motion'
+import { motion, useInView, useReducedMotion, useScroll, useTransform, useMotionValue, useSpring, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 
@@ -197,11 +197,11 @@ function AmbientOrbs() {
   return (
     <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden>
       {/* Warm golden orb — top right */}
-      <div className="animate-ambient-1 absolute -top-32 -right-32 h-[500px] w-[500px] rounded-full bg-golden/[0.07] blur-[120px] dark:bg-golden/[0.05]" />
+      <div className="animate-ambient-1 absolute -top-32 -right-32 h-[500px] w-[500px] rounded-full bg-golden/[0.07] blur-[120px] dark:bg-golden/[0.015]" />
       {/* Green orb — bottom left */}
-      <div className="animate-ambient-2 absolute -bottom-40 -left-40 h-[600px] w-[600px] rounded-full bg-primary/[0.04] blur-[140px] dark:bg-primary/[0.05]" />
+      <div className="animate-ambient-2 absolute -bottom-40 -left-40 h-[600px] w-[600px] rounded-full bg-primary/[0.04] blur-[140px] dark:bg-primary/[0.015]" />
       {/* Soft warm orb — center */}
-      <div className="animate-ambient-1 absolute top-1/2 left-1/2 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-golden/[0.05] blur-[100px] dark:bg-golden/[0.03]" style={{ animationDelay: '-8s' }} />
+      <div className="animate-ambient-1 absolute top-1/2 left-1/2 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-golden/[0.05] blur-[100px] dark:bg-golden/[0.01]" style={{ animationDelay: '-8s' }} />
     </div>
   )
 }
@@ -212,8 +212,11 @@ function StepCard({ step, index }: { step: typeof steps[0]; index: number }) {
   const ref = useRef<HTMLDivElement>(null)
   const isInView = useInView(ref, { once: true, margin: '-60px' })
   const shouldReduce = useReducedMotion()
-  const mouseX = useMotionValue(0)
-  const mouseY = useMotionValue(0)
+  // useSpring gives the tilt natural momentum — direct useMotionValue feels robotic (Emil: spring for decorative mouse tracking)
+  const rawX = useMotionValue(0)
+  const rawY = useMotionValue(0)
+  const mouseX = useSpring(rawX, { stiffness: 150, damping: 20 })
+  const mouseY = useSpring(rawY, { stiffness: 150, damping: 20 })
   const isGreen = step.accent === 'green'
 
   function handleMouseMove(e: React.MouseEvent) {
@@ -221,8 +224,8 @@ function StepCard({ step, index }: { step: typeof steps[0]; index: number }) {
     const rect = ref.current.getBoundingClientRect()
     const cx = rect.left + rect.width / 2
     const cy = rect.top + rect.height / 2
-    mouseX.set((e.clientX - cx) * 0.02)
-    mouseY.set((e.clientY - cy) * 0.02)
+    rawX.set((e.clientX - cx) * 0.02)
+    rawY.set((e.clientY - cy) * 0.02)
   }
 
   return (
@@ -232,7 +235,7 @@ function StepCard({ step, index }: { step: typeof steps[0]; index: number }) {
       animate={isInView ? { opacity: 1, y: 0 } : {}}
       transition={{ delay: index * 0.15, duration: 0.6, ease: EASE_OUT }}
       onMouseMove={handleMouseMove}
-      onMouseLeave={() => { mouseX.set(0); mouseY.set(0) }}
+      onMouseLeave={() => { rawX.set(0); rawY.set(0) }}
       style={{ rotateX: mouseY, rotateY: mouseX }}
       className="group relative [perspective:800px]"
     >
@@ -245,7 +248,7 @@ function StepCard({ step, index }: { step: typeof steps[0]; index: number }) {
       </div>
 
       <div className={cn(
-        'surface-card relative rounded-2xl border border-border bg-card/60 p-8 backdrop-blur-sm transition-all duration-300 hover:bg-card/90 hover:shadow-xl lg:p-10',
+        'surface-card relative rounded-2xl border border-border bg-card/90 p-8 backdrop-blur-sm dark:bg-card lg:p-10',
         isGreen ? 'hover:border-secondary/30' : 'hover:border-golden/25'
       )}>
         {/* Step number pill */}
@@ -356,7 +359,10 @@ export function LandingPage() {
           pastHero ? 'pointer-events-none opacity-0' : 'opacity-100'
         )}
       >
-        <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-6 lg:px-16">
+        {/* Subtle scrim so nav text is legible + bottom line separating nav from image */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-px bg-white/10" />
+        <div className="relative mx-auto flex h-18 max-w-7xl items-center justify-between px-6 lg:px-16">
           <Link to="/" className="flex min-h-[44px] min-w-[44px] items-center gap-3 font-bold" aria-label="Nest home">
             <img src="/nest-logo-transparent-cropped.png" alt="Nest logo" width={34} height={34} />
             <span className="text-2xl tracking-tight text-white">Nest</span>
@@ -430,11 +436,15 @@ export function LandingPage() {
       <MobileMenu isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
 
       {/* ─── HERO ─── */}
-      <section ref={heroRef} className="relative z-10 h-screen w-full overflow-hidden lg:h-[92vh]">
+      <section ref={heroRef} className="relative z-10 h-[105vh] w-full overflow-hidden">
+        {/* Cinematic image reveal: starts zoomed + blurred, sharpens into place */}
         <motion.img
           src="/hero-apartment.png"
           alt="Beautiful modern apartment with warm natural lighting overlooking the city"
           className="absolute inset-0 h-full w-full object-cover"
+          initial={shouldReduce ? {} : { scale: 1.15, filter: 'blur(8px)' }}
+          animate={{ scale: 1, filter: 'blur(0px)' }}
+          transition={{ duration: 1.8, ease: [0.23, 1, 0.32, 1] }}
           style={{ y: heroImageY, scale: heroImageScale }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/20" />
@@ -495,7 +505,7 @@ export function LandingPage() {
                 initial={shouldReduce ? {} : { opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1.2, duration: 0.6, ease: EASE_OUT }}
-                className="lg:max-w-[220px] lg:text-right"
+                className="ml-auto self-end text-right lg:max-w-[220px]"
               >
                 <p className="text-sm leading-relaxed text-white/50">
                   A modern solution to apartment hunting. One search, ranked results, under a minute.
@@ -620,8 +630,8 @@ export function LandingPage() {
                 className="group"
               >
                 <GlowCard className="h-full">
-                  <Card className={cn('h-full cursor-default border-2 border-border bg-card/60 p-8 shadow-sm backdrop-blur-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl', feature.hoverBorder)}>
-                    <div className={cn('flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-110', feature.color)}>
+                  <Card className={cn('h-full cursor-default border-2 border-border bg-card/90 p-8 shadow-sm backdrop-blur-sm dark:bg-card [transition:transform_200ms_cubic-bezier(0.23,1,0.32,1),box-shadow_220ms_cubic-bezier(0.23,1,0.32,1),border-color_180ms_ease-out] hover:-translate-y-1.5 hover:shadow-xl', feature.hoverBorder)}>
+                    <div className={cn('flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-150 group-hover:scale-110', feature.color)}>
                       <feature.icon className="h-7 w-7" aria-hidden />
                     </div>
                     <h3 className="mt-6 text-xl font-semibold text-foreground">{feature.title}</h3>
@@ -810,7 +820,7 @@ export function LandingPage() {
                 className="group"
               >
                 <Card className={cn(
-                  'h-full cursor-default border-border bg-card/60 p-8 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg',
+                  'h-full cursor-default border-border bg-card/90 p-8 backdrop-blur-sm dark:bg-card [transition:transform_200ms_cubic-bezier(0.23,1,0.32,1),box-shadow_220ms_cubic-bezier(0.23,1,0.32,1),border-color_180ms_ease-out] hover:-translate-y-1 hover:shadow-lg',
                   i % 2 === 0 ? 'hover:border-secondary/20' : 'hover:border-primary/15'
                 )}>
                   <Quote className={cn(

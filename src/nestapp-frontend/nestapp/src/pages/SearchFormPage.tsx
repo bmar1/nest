@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import axios from 'axios'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -147,6 +147,7 @@ const priceStops = [1000, 1500, 1800, 2000, 2500, 3000, 3500, 4000, 5000]
 
 export function SearchFormPage() {
   const navigate = useNavigate()
+  const shouldReduce = useReducedMotion()
   const [formData, setFormData] = useState<SearchFormData>({
     priority: 'BALANCED',
     maxPrice: 2500,
@@ -254,7 +255,7 @@ export function SearchFormPage() {
         <form onSubmit={handleSubmit}>
           {/* ─── Header Copy ─────────────────── */}
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
+            initial={shouldReduce ? {} : { opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
             className="text-center"
@@ -280,14 +281,14 @@ export function SearchFormPage() {
                 <motion.button
                   key={p.value}
                   type="button"
-                  initial={{ opacity: 0, y: 16 }}
+                  initial={shouldReduce ? {} : { opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 + i * 0.06, duration: 0.35 }}
                   whileHover={{ scale: 1.02, y: -2 }}
                   whileTap={{ scale: 0.97 }}
                   onClick={() => selectPriority(p.value)}
                   className={cn(
-                    'group relative flex cursor-pointer flex-col items-center gap-2 rounded-2xl border-2 px-4 py-5 text-center transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                    'group relative flex cursor-pointer flex-col items-center gap-2 rounded-2xl border-2 px-4 py-5 text-center [transition:background-color_150ms_ease-out,border-color_150ms_ease-out,color_150ms_ease-out,box-shadow_200ms_ease-out] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                     isActive
                       ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10'
                       : 'border-sage-muted/40 bg-white/80 hover:border-primary/30 hover:bg-white hover:shadow-md dark:border-border dark:bg-surface/80 dark:hover:bg-surface-elevated'
@@ -299,7 +300,7 @@ export function SearchFormPage() {
                   <AnimatePresence>
                     {isActive && (
                       <motion.div
-                        initial={{ scale: 0, opacity: 0 }}
+                        initial={{ scale: 0.6, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0, opacity: 0 }}
                         className="absolute top-2.5 right-2.5 flex h-6 w-6 items-center justify-center rounded-full bg-primary"
@@ -688,7 +689,7 @@ export function SearchFormPage() {
               type="submit"
               size="lg"
               disabled={isSubmitting}
-              className="mt-3 h-14 w-full text-base font-semibold shadow-lg shadow-primary/15 transition-shadow duration-300 hover:shadow-xl hover:shadow-primary/20 sm:h-16 sm:text-lg"
+              className="mt-3 h-14 w-full cursor-pointer text-base font-semibold shadow-lg shadow-primary/15 transition-shadow duration-300 hover:shadow-xl hover:shadow-primary/20 active:scale-[0.97] sm:h-16 sm:text-lg"
             >
               {isSubmitting ? (
                 <>

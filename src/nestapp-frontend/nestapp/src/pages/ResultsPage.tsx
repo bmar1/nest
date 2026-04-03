@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import axios from 'axios'
-import { motion, AnimatePresence, useInView } from 'framer-motion'
+import { motion, AnimatePresence, useInView, useReducedMotion } from 'framer-motion'
 import type { MouseEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -35,8 +35,14 @@ import {
   Clock,
   Loader2,
   AlertCircle,
+  ArrowRight,
+  Medal,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+/* ─── Constants ────────────────────────── */
+
+const EASE_OUT = [0.23, 1, 0.32, 1] as const
 
 /* ─── API Types ────────────────────────── */
 
@@ -78,7 +84,7 @@ interface SearchResultsDto {
 /* ─── Display Types ────────────────────── */
 
 interface ScoreBreakdown {
-  priceScore: number   // 0-100 normalised for display
+  priceScore: number
   spaceScore: number
   amenitiesScore: number
   leaseScore: number
@@ -112,7 +118,6 @@ function getMatchLabel(score: number): string {
   return 'Listed'
 }
 
-/** Normalise raw sub-scores to 0-100 for progress bars */
 function normaliseBreakdown(raw: ApiScoreBreakdown): ScoreBreakdown {
   return {
     priceScore: Math.round(Math.min(100, (raw.priceScore / 30) * 100)),
@@ -196,52 +201,32 @@ function getApartmentImage(apartment: Apartment): string {
 
 function getApartmentImages(apartment: Apartment): string[] {
   const apiImages = apartment.imageUrls.filter(Boolean)
-  if (apiImages.length > 0) {
-    return apiImages
-  }
+  if (apiImages.length > 0) return apiImages
   return [getApartmentImage(apartment)]
 }
 
 function getScoreNarrative(apartment: Apartment): string {
   const dimensions = [
-    {
-      key: 'price',
-      score: apartment.scoreBreakdown.priceScore,
-      good: 'the price is very competitive for your budget',
-      bad: 'the price runs a bit high for your target range',
-    },
-    {
-      key: 'space',
-      score: apartment.scoreBreakdown.spaceScore,
-      good: 'the square footage lines up well with your space needs',
-      bad: 'the space is a little tighter than your ideal',
-    },
-    {
-      key: 'amenities',
-      score: apartment.scoreBreakdown.amenitiesScore,
-      good: 'the amenity mix fits your preferences nicely',
-      bad: 'the amenities are more limited than your stronger matches',
-    },
-    {
-      key: 'lease',
-      score: apartment.scoreBreakdown.leaseScore,
-      good: 'the lease terms look flexible for your search',
-      bad: 'the lease terms are less flexible than your target',
-    },
+    { key: 'price', score: apartment.scoreBreakdown.priceScore, good: 'the price is very competitive for your budget', bad: 'the price runs a bit high for your target range' },
+    { key: 'space', score: apartment.scoreBreakdown.spaceScore, good: 'the square footage lines up well with your space needs', bad: 'the space is a little tighter than your ideal' },
+    { key: 'amenities', score: apartment.scoreBreakdown.amenitiesScore, good: 'the amenity mix fits your preferences nicely', bad: 'the amenities are more limited than your stronger matches' },
+    { key: 'lease', score: apartment.scoreBreakdown.leaseScore, good: 'the lease terms look flexible for your search', bad: 'the lease terms are less flexible than your target' },
   ].sort((a, b) => b.score - a.score)
 
   const best = dimensions[0]
   const weakest = dimensions[dimensions.length - 1]
 
-  if (!best || !weakest) {
-    return 'This listing is a balanced match across the factors you asked us to compare.'
-  }
-
-  if (best.score - weakest.score <= 10) {
-    return 'This listing is fairly balanced across price, space, amenities, and lease flexibility for your search.'
-  }
-
+  if (!best || !weakest) return 'This listing is a balanced match across the factors you asked us to compare.'
+  if (best.score - weakest.score <= 10) return 'This listing is fairly balanced across price, space, amenities, and lease flexibility for your search.'
   return `This one stands out because ${best.good}, but ${weakest.bad}.`
+}
+
+function getScoreColor(s: number) {
+  return s >= 90 ? 'text-primary' : s >= 75 ? 'text-sage' : s >= 60 ? 'text-amber-500' : 'text-red-400'
+}
+
+function getBarColor(s: number) {
+  return s >= 90 ? 'bg-primary' : s >= 75 ? 'bg-sage' : s >= 60 ? 'bg-amber-500' : 'bg-red-400'
 }
 
 const CONFETTI_DOTS = Array.from({ length: 20 }, (_, i) => ({
@@ -268,9 +253,6 @@ function ScoreBar({ label, score, icon: Icon, delay = 0 }: {
   const ref = useRef<HTMLDivElement>(null)
   const isInView = useInView(ref, { once: true })
 
-  const getColor = (s: number) =>
-    s >= 90 ? 'bg-primary' : s >= 75 ? 'bg-sage' : s >= 60 ? 'bg-amber-500' : 'bg-red-400'
-
   return (
     <div ref={ref} className="space-y-1">
       <div className="flex items-center justify-between text-xs">
@@ -284,8 +266,8 @@ function ScoreBar({ label, score, icon: Icon, delay = 0 }: {
         <motion.div
           initial={{ width: 0 }}
           animate={isInView ? { width: `${score}%` } : { width: 0 }}
-          transition={{ duration: 0.8, delay, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className={cn('h-full rounded-full', getColor(score))}
+          transition={{ duration: 0.8, delay, ease: EASE_OUT }}
+          className={cn('h-full rounded-full', getBarColor(score))}
         />
       </div>
     </div>
@@ -300,12 +282,12 @@ function ConfettiDots() {
       {CONFETTI_DOTS.map((dot) => (
         <motion.div
           key={dot.id}
-          initial={{ opacity: 0, y: -20, x: dot.initialX, scale: 0 }}
+          initial={{ opacity: 0, y: -20, x: dot.initialX, scale: 0.6 }}
           animate={{
             opacity: [0, 1, 1, 0],
             y: [0, dot.travelY],
             x: dot.travelX,
-            scale: [0, 1, 1, 0.5],
+            scale: [0.6, 1, 1, 0.5],
             rotate: dot.rotate,
           }}
           transition={{ duration: dot.duration, delay: dot.delay, ease: 'easeOut' }}
@@ -316,6 +298,8 @@ function ConfettiDots() {
     </div>
   )
 }
+
+/* ─── Image Carousel ───────────────────── */
 
 function ListingImageCarousel({
   apartment,
@@ -359,18 +343,18 @@ function ListingImageCarousel({
           <button
             type="button"
             onClick={goToPrevious}
-            className="absolute left-3 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition hover:bg-black/60"
+            className="absolute left-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm [transition:background-color_150ms_ease-out] hover:bg-black/60"
             aria-label="Previous image"
           >
-            <ChevronLeft className="h-4 w-4" aria-hidden />
+            <ChevronLeft className="h-5 w-5" aria-hidden />
           </button>
           <button
             type="button"
             onClick={goToNext}
-            className="absolute right-3 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition hover:bg-black/60"
+            className="absolute right-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm [transition:background-color_150ms_ease-out] hover:bg-black/60"
             aria-label="Next image"
           >
-            <ChevronRight className="h-4 w-4" aria-hidden />
+            <ChevronRight className="h-5 w-5" aria-hidden />
           </button>
           <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5">
             {images.map((image, imageIndex) => (
@@ -382,7 +366,7 @@ function ListingImageCarousel({
                   setIndex(imageIndex)
                 }}
                 className={cn(
-                  'h-1.5 rounded-full transition-all',
+                  'h-1.5 cursor-pointer rounded-full [transition:width_200ms_ease-out,background-color_200ms_ease-out]',
                   imageIndex === index ? 'w-5 bg-white' : 'w-1.5 bg-white/55'
                 )}
                 aria-label={`View image ${imageIndex + 1}`}
@@ -395,353 +379,409 @@ function ListingImageCarousel({
   )
 }
 
-/* ─── Detail Modal ─────────────────────── */
 
-function ApartmentDetailModal({ apartment, onClose }: { apartment: Apartment; onClose: () => void }) {
+/* ─── Hero Card (#1 Result) ────────────── */
+
+function HeroResult({ apartment, onSelect, shouldReduce }: {
+  apartment: Apartment
+  onSelect: () => void
+  shouldReduce: boolean | null
+}) {
+  const sourceName = getListingSourceName(apartment.sourceUrl)
+
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
-        onClick={onClose}
-      >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-card shadow-2xl"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-background/95 shadow-md backdrop-blur-sm transition-all hover:bg-accent hover:shadow-lg"
-            aria-label="Close details"
-          >
-            <X className="h-5 w-5 text-foreground" />
-          </button>
+    <motion.div
+      initial={shouldReduce ? {} : { opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: EASE_OUT }}
+      className="group relative cursor-pointer overflow-hidden rounded-3xl border-2 border-primary/30 bg-card shadow-xl shadow-primary/10 [transition:border-color_200ms_ease-out,box-shadow_300ms_ease-out] hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/15"
+      onClick={onSelect}
+    >
+      {/* Image section */}
+      <div className="relative h-56 overflow-hidden sm:h-72 lg:h-80">
+        <ListingImageCarousel apartment={apartment} className="h-full w-full [transition:transform_500ms_cubic-bezier(0.23,1,0.32,1)] group-hover:scale-[1.03]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
-          <div className="relative h-48 w-full overflow-hidden rounded-t-3xl sm:h-64">
-            <ListingImageCarousel apartment={apartment} className="h-full w-full" />
-            <div className="absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-transparent" />
-            <div className="absolute bottom-4 left-6 right-6">
-              <div className="flex items-center gap-2">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-lg">
-                  <Trophy className="h-5 w-5 text-white" aria-hidden />
-                </div>
-                <span className="inline-block rounded-full bg-primary/90 px-3 py-0.5 text-xs font-bold text-white backdrop-blur-sm">
-                  #1 BEST MATCH
-                </span>
-              </div>
-              <h2 className="mt-2 text-2xl font-bold text-white sm:text-3xl">{apartment.title}</h2>
-            </div>
+        {/* Badge */}
+        <div className="absolute top-4 left-4 flex items-center gap-2">
+          <span className="flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-xs font-bold text-white shadow-lg shadow-primary/30">
+            <Trophy className="h-3.5 w-3.5" aria-hidden />
+            #1 BEST MATCH
+          </span>
+          <span className="rounded-full bg-white/20 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm">
+            {apartment.matchLabel}
+          </span>
+        </div>
+
+        {/* Score overlay */}
+        <div className="absolute top-4 right-4 flex flex-col items-center rounded-2xl bg-black/40 px-4 py-3 backdrop-blur-sm">
+          <span className="font-mono text-3xl font-bold text-white">{apartment.finalScore}</span>
+          <span className="text-[10px] font-medium uppercase tracking-wider text-white/70">score</span>
+        </div>
+
+        {/* Bottom overlay content */}
+        <div className="absolute inset-x-0 bottom-0 p-6">
+          <h2 className="text-2xl font-bold text-white sm:text-3xl">{apartment.title}</h2>
+          <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1.5">
+            <span className="font-mono text-lg font-bold text-golden">${apartment.price.toLocaleString()}/mo</span>
+            {apartment.sqft > 0 && <span className="text-sm text-white/70">{apartment.sqft.toLocaleString()} ft²</span>}
+            {apartment.bedrooms > 0 && <span className="text-sm text-white/70">{apartment.bedrooms} bed</span>}
+            {apartment.bathrooms > 0 && <span className="text-sm text-white/70">{apartment.bathrooms} bath</span>}
+            <span className="text-sm text-white/70">{apartment.leaseTermMonths} mo lease</span>
           </div>
+        </div>
+      </div>
 
-          <div className="p-6 sm:p-8">
-            {/* Stats */}
-            <div className="flex flex-wrap gap-4">
-              <div className="flex items-center gap-2 rounded-xl bg-muted/50 px-4 py-2.5 shadow-sm dark:bg-surface-elevated">
-                <DollarSign className="h-4 w-4 text-primary" aria-hidden />
-                <div>
-                  <p className="font-mono text-xl font-bold text-primary">${apartment.price.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">/month</p>
-                </div>
+      {/* Bottom bar */}
+      <div className="flex items-center justify-between border-t border-primary/10 px-6 py-4">
+        <div className="flex items-center gap-4">
+          {/* Mini score bars */}
+          {[
+            { label: 'Price', score: apartment.scoreBreakdown.priceScore },
+            { label: 'Space', score: apartment.scoreBreakdown.spaceScore },
+            { label: 'Amenities', score: apartment.scoreBreakdown.amenitiesScore },
+            { label: 'Lease', score: apartment.scoreBreakdown.leaseScore },
+          ].map(({ label, score }) => (
+            <div key={label} className="hidden sm:block">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-muted-foreground">{label}</span>
+                <span className={cn('font-mono text-xs font-bold', getScoreColor(score))}>{score}</span>
               </div>
-              {apartment.sqft > 0 && (
-                <div className="flex items-center gap-2 rounded-xl bg-muted/50 px-4 py-2.5 shadow-sm dark:bg-surface-elevated">
-                  <Maximize2 className="h-4 w-4 text-primary" aria-hidden />
-                  <div>
-                    <p className="font-mono text-xl font-bold text-foreground">{apartment.sqft.toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground">sq ft</p>
-                  </div>
-                </div>
-              )}
-              {apartment.bedrooms > 0 && (
-                <div className="flex items-center gap-2 rounded-xl bg-muted/50 px-4 py-2.5 shadow-sm dark:bg-surface-elevated">
-                  <Bed className="h-4 w-4 text-primary" aria-hidden />
-                  <div>
-                    <p className="font-mono text-xl font-bold text-foreground">{apartment.bedrooms}bd</p>
-                    <p className="text-xs text-muted-foreground">bedrooms</p>
-                  </div>
-                </div>
-              )}
-              {apartment.bathrooms > 0 && (
-                <div className="flex items-center gap-2 rounded-xl bg-muted/50 px-4 py-2.5 shadow-sm dark:bg-surface-elevated">
-                  <Bath className="h-4 w-4 text-primary" aria-hidden />
-                  <div>
-                    <p className="font-mono text-xl font-bold text-foreground">{apartment.bathrooms}ba</p>
-                    <p className="text-xs text-muted-foreground">bathrooms</p>
-                  </div>
-                </div>
-              )}
-              <div className="flex items-center gap-2 rounded-xl bg-muted/50 px-4 py-2.5 shadow-sm dark:bg-surface-elevated">
-                <Calendar className="h-4 w-4 text-primary" aria-hidden />
-                <div>
-                  <p className="font-mono text-xl font-bold text-foreground">{apartment.leaseTermMonths}</p>
-                  <p className="text-xs text-muted-foreground">mo lease</p>
-                </div>
+              <div className="mt-1 h-1 w-14 rounded-full bg-sage-muted/20">
+                <div className={cn('h-full rounded-full', getBarColor(score))} style={{ width: `${score}%` }} />
               </div>
             </div>
-
-            {/* Score breakdown */}
-            <div className="mt-8">
-              <h3 className="flex items-center gap-2 text-lg font-semibold text-foreground">
-                <BarChart3 className="h-5 w-5 text-primary" aria-hidden />
-                Score Breakdown
-              </h3>
-              <Card className="mt-3 border-sage-muted/30 bg-muted/30 p-5 dark:bg-surface-elevated/90">
-                <div className="mb-4 flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Overall Match</span>
-                  <span className="font-mono text-3xl font-bold text-primary">
-                    {apartment.finalScore}
-                    <span className="text-base font-normal text-muted-foreground">/100</span>
-                  </span>
-                </div>
-                <div className="space-y-3">
-                  <ScoreBar label="Price" score={apartment.scoreBreakdown.priceScore} icon={DollarSign} delay={0} />
-                  <ScoreBar label="Space" score={apartment.scoreBreakdown.spaceScore} icon={Layout} delay={0.1} />
-                  <ScoreBar label="Amenities" score={apartment.scoreBreakdown.amenitiesScore} icon={Sparkles} delay={0.2} />
-                  <ScoreBar label="Lease" score={apartment.scoreBreakdown.leaseScore} icon={Clock} delay={0.3} />
-                </div>
-                <p className="mt-4 rounded-2xl border border-primary/10 bg-primary/5 px-4 py-3 text-sm leading-6 text-muted-foreground dark:border-border dark:bg-background/60">
-                  {getScoreNarrative(apartment)}
-                </p>
-              </Card>
-            </div>
-
-            {/* Amenities */}
-            {apartment.amenities.length > 0 && (
-              <div className="mt-8">
-                <h3 className="text-lg font-semibold text-foreground">Amenities</h3>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {apartment.amenities.map((a) => {
-                    const Icon = amenityIconMap[a] ?? CheckCircle2
-                    return (
-                      <span
-                        key={a}
-                        className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-sm font-medium text-primary"
-                      >
-                        <Icon className="h-4 w-4" aria-hidden />
-                        {displayAmenity(a)}
-                      </span>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* CTA */}
-            <div className="mt-8 flex gap-3">
-              <Button size="lg" className="h-14 flex-1 text-base font-semibold" asChild>
-                <a href={apartment.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2">
-                  View listing
-                  <ExternalLink className="h-4 w-4" aria-hidden />
-                </a>
-              </Button>
-              <Button variant="outline" size="lg" className="h-14 px-5" aria-label="Save listing">
-                <Heart className="h-5 w-5" />
-              </Button>
-              <Button variant="outline" size="lg" className="h-14 px-5" aria-label="Share listing">
-                <Share2 className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+          ))}
+          {apartment.sourceUrl && (
+            <a
+              href={apartment.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs text-muted-foreground [transition:color_150ms_ease-out] hover:text-primary"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MapPin className="h-3 w-3 shrink-0" aria-hidden />
+              <span>View on {sourceName}</span>
+              <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
+            </a>
+          )}
+        </div>
+        <span className="flex items-center gap-1.5 text-xs font-medium text-primary">
+          View details
+          <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+        </span>
+      </div>
+    </motion.div>
   )
 }
 
-/* ─── Ranking Card ─────────────────────── */
+/* ─── Runner-Up Card (#2-3) ────────────── */
 
-function RankingCard({ apartment, onViewDetails }: {
+function RunnerUpCard({ apartment, onSelect, shouldReduce }: {
   apartment: Apartment
-  onViewDetails?: () => void
+  onSelect: () => void
+  shouldReduce: boolean | null
 }) {
-  const isFirst = apartment.rank === 1
   const ref = useRef<HTMLDivElement>(null)
   const isInView = useInView(ref, { once: true, margin: '-40px' })
   const sourceName = getListingSourceName(apartment.sourceUrl)
-  const isClickable = Boolean(onViewDetails)
 
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 30 }}
-      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-      transition={{ duration: 0.5, delay: apartment.rank * 0.07 }}
-      whileHover={isClickable ? { scale: 1.01, y: -4 } : { scale: 1.005, y: -2 }}
-      className={cn(
-        'group relative overflow-hidden rounded-2xl border-2 transition-all duration-300',
-        apartment.rank === 1
-          ? 'cursor-pointer border-primary/40 bg-card shadow-xl shadow-primary/10 hover:border-primary/60 hover:shadow-2xl hover:shadow-primary/15'
-          : 'cursor-pointer border-sage-muted/30 bg-card shadow-sm hover:border-sage-muted/50 hover:shadow-md dark:border-border'
-      )}
-      onClick={onViewDetails}
+      initial={shouldReduce ? {} : { opacity: 0, y: 24 }}
+      animate={isInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.5, delay: (apartment.rank - 1) * 0.1, ease: EASE_OUT }}
+      className="group cursor-pointer overflow-hidden rounded-2xl border-2 border-border bg-card shadow-sm [transition:border-color_200ms_ease-out,box-shadow_300ms_ease-out,transform_200ms_cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-1 hover:border-sage-muted/50 hover:shadow-lg dark:border-border"
+      onClick={onSelect}
     >
-      {apartment.rank === 1 && (
-        <div className="absolute top-0 right-0 z-10">
-          <div className="flex items-center gap-1 rounded-bl-2xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-lg">
-            <Trophy className="h-3.5 w-3.5" aria-hidden />
-            BEST MATCH
-          </div>
-        </div>
-      )}
+      {/* Image */}
+      <div className="relative h-44 overflow-hidden">
+        <ListingImageCarousel apartment={apartment} className="h-full w-full [transition:transform_500ms_cubic-bezier(0.23,1,0.32,1)] group-hover:scale-[1.03]" showControls={false} />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
 
-      <div className="flex flex-col sm:flex-row">
-        <div className={cn(
-          'relative shrink-0 overflow-hidden',
-          isFirst
-            ? 'h-44 sm:h-auto sm:w-64'
-            : 'h-32 sm:h-auto sm:w-48'
-        )}>
-          <ListingImageCarousel apartment={apartment} className="h-full w-full transition-transform duration-500 group-hover:scale-105" />
-          {/* Rank badge */}
-          <div className={cn(
-            'absolute top-3 left-3 flex h-9 w-9 items-center justify-center rounded-xl font-mono text-sm font-bold shadow-md',
-            apartment.rank === 1
-              ? 'bg-background/95 text-primary backdrop-blur-sm dark:bg-card/95 dark:text-primary'
-              : 'bg-background/95 text-foreground backdrop-blur-sm dark:bg-card/95 dark:text-primary'
-          )}>
+        {/* Rank + score */}
+        <div className="absolute top-3 left-3 flex items-center gap-2">
+          <span className="flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-xs font-bold text-foreground shadow-sm backdrop-blur-sm dark:bg-card/90">
+            <Medal className="h-3 w-3 text-primary" aria-hidden />
             #{apartment.rank}
-          </div>
+          </span>
+        </div>
+        <div className="absolute top-3 right-3 rounded-xl bg-black/40 px-3 py-1.5 backdrop-blur-sm">
+          <span className="font-mono text-lg font-bold text-white">{apartment.finalScore}</span>
         </div>
 
-        {/* Content */}
-        <div className="flex flex-1 flex-col p-5 sm:p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className={cn('font-semibold truncate', apartment.rank === 1 ? 'text-xl text-foreground' : 'text-lg text-foreground')}>
-                  {apartment.title}
-                </h3>
-                <span className={cn(
-                  'shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium',
-                  apartment.rank === 1 ? 'bg-primary/10 text-primary' : 'bg-sage-muted/30 text-muted-foreground dark:bg-accent dark:text-foreground'
-                )}>
-                  {apartment.matchLabel}
+        {/* Price */}
+        <div className="absolute bottom-3 left-3">
+          <span className="font-mono text-lg font-bold text-golden">${apartment.price.toLocaleString()}/mo</span>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="p-5">
+        <h3 className="truncate text-lg font-semibold text-foreground">{apartment.title}</h3>
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+          {apartment.sqft > 0 && <span>{apartment.sqft.toLocaleString()} ft²</span>}
+          {apartment.bedrooms > 0 && <span>{apartment.bedrooms} bed</span>}
+          {apartment.bathrooms > 0 && <span>{apartment.bathrooms} bath</span>}
+          <span>{apartment.leaseTermMonths} mo</span>
+        </div>
+
+        {/* Amenity chips */}
+        {apartment.amenities.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {apartment.amenities.slice(0, 3).map((a) => {
+              const Icon = amenityIconMap[a] ?? CheckCircle2
+              return (
+                <span key={a} className="inline-flex items-center gap-1 rounded-md bg-sage-muted/15 px-2 py-1 text-[11px] font-medium text-muted-foreground">
+                  <Icon className="h-3 w-3" aria-hidden />
+                  {displayAmenity(a)}
                 </span>
-              </div>
-              {apartment.sourceUrl && (
-                <a
-                  href={apartment.sourceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-1 flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <MapPin className="h-3 w-3 shrink-0" aria-hidden />
-                  <span className="truncate">View on {sourceName}</span>
-                  <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
-                </a>
-              )}
-            </div>
-
-            {/* Score circle */}
-            <div className={cn('shrink-0 flex flex-col items-center justify-center rounded-2xl px-4 py-2', apartment.rank === 1 ? 'bg-primary/10' : 'bg-sage-muted/20')}>
-              <span className={cn('font-mono text-2xl font-bold', apartment.rank === 1 ? 'text-primary' : 'text-foreground')}>
-                {apartment.finalScore}
-              </span>
-              <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">score</span>
-            </div>
-          </div>
-
-          {/* Quick stats */}
-          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1.5 font-mono font-semibold text-primary">
-              <DollarSign className="h-3.5 w-3.5" aria-hidden />
-              ${apartment.price.toLocaleString()}/mo
-            </span>
-            {apartment.sqft > 0 && (
-              <span className="flex items-center gap-1.5">
-                <Maximize2 className="h-3.5 w-3.5" aria-hidden />
-                {apartment.sqft.toLocaleString()} ft²
+              )
+            })}
+            {apartment.amenities.length > 3 && (
+              <span className="rounded-md bg-sage-muted/15 px-2 py-1 text-[11px] font-medium text-muted-foreground">
+                +{apartment.amenities.length - 3} more
               </span>
             )}
-            {apartment.bedrooms > 0 && (
-              <span className="flex items-center gap-1.5">
-                <Bed className="h-3.5 w-3.5" aria-hidden />
-                {apartment.bedrooms}bd
-              </span>
-            )}
-            {apartment.bathrooms > 0 && (
-              <span className="flex items-center gap-1.5">
-                <Bath className="h-3.5 w-3.5" aria-hidden />
-                {apartment.bathrooms}ba
-              </span>
-            )}
-            <span className="flex items-center gap-1.5">
-              <Calendar className="h-3.5 w-3.5" aria-hidden />
-              {apartment.leaseTermMonths} mo
-            </span>
           </div>
+        )}
 
-          {/* Mini score bars */}
-          <div className="mt-4 grid grid-cols-4 gap-2">
-            {[
-              { label: 'Price', score: apartment.scoreBreakdown.priceScore },
-              { label: 'Space', score: apartment.scoreBreakdown.spaceScore },
-              { label: 'Amenities', score: apartment.scoreBreakdown.amenitiesScore },
-              { label: 'Lease', score: apartment.scoreBreakdown.leaseScore },
-            ].map(({ label, score }) => (
-              <div key={label}>
-                <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                  <span>{label}</span>
-                  <span className="font-mono font-medium">{score}</span>
-                </div>
-                <div className="mt-1 h-1.5 rounded-full bg-sage-muted/20">
-                  <div
-                    className={cn('h-full rounded-full transition-all duration-500', score >= 90 ? 'bg-primary' : score >= 75 ? 'bg-sage' : score >= 60 ? 'bg-amber-500' : 'bg-red-400')}
-                    style={{ width: `${score}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            {getScoreNarrative(apartment)}
-          </p>
-
-          {/* Amenity chips */}
-          {apartment.amenities.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {apartment.amenities.slice(0, apartment.rank === 1 ? 5 : 3).map((a) => {
-                const Icon = amenityIconMap[a] ?? CheckCircle2
-                return (
-                  <span
-                    key={a}
-                    className="inline-flex items-center gap-1 rounded-md bg-sage-muted/15 px-2 py-1 text-[11px] font-medium text-muted-foreground"
-                  >
-                    <Icon className="h-3 w-3" aria-hidden />
-                    {displayAmenity(a)}
-                  </span>
-                )
-              })}
-              {apartment.amenities.length > (apartment.rank === 1 ? 5 : 3) && (
-                <span className="rounded-md bg-sage-muted/15 px-2 py-1 text-[11px] font-medium text-muted-foreground">
-                  +{apartment.amenities.length - (apartment.rank === 1 ? 5 : 3)} more
-                </span>
-              )}
-            </div>
-          )}
-
-          {isClickable && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1 }}
-              className="mt-4 flex items-center gap-1.5 text-xs font-medium text-primary"
+        <div className="mt-3 flex items-center justify-between">
+          {apartment.sourceUrl && (
+            <a
+              href={apartment.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs text-muted-foreground [transition:color_150ms_ease-out] hover:text-primary"
+              onClick={(e) => e.stopPropagation()}
             >
-              <Sparkles className="h-3.5 w-3.5" aria-hidden />
-              Click to view full details
-            </motion.p>
+              <span>View on {sourceName}</span>
+              <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
+            </a>
           )}
+          <span className="flex items-center gap-1 text-xs font-medium text-primary opacity-0 [transition:opacity_200ms_ease-out] group-hover:opacity-100">
+            Details <ArrowRight className="h-3 w-3" />
+          </span>
         </div>
       </div>
     </motion.div>
+  )
+}
+
+/* ─── Compact Card (#4+) ──────────────── */
+
+function CompactCard({ apartment, onSelect, shouldReduce }: {
+  apartment: Apartment
+  onSelect: () => void
+  shouldReduce: boolean | null
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const isInView = useInView(ref, { once: true, margin: '-30px' })
+  const sourceName = getListingSourceName(apartment.sourceUrl)
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={shouldReduce ? {} : { opacity: 0, y: 16 }}
+      animate={isInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.4, delay: Math.min(apartment.rank * 0.05, 0.4), ease: EASE_OUT }}
+      className="group flex cursor-pointer items-stretch overflow-hidden rounded-xl border border-border bg-card [transition:border-color_200ms_ease-out,box-shadow_250ms_ease-out,transform_200ms_cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-0.5 hover:border-sage-muted/50 hover:shadow-md"
+      onClick={onSelect}
+    >
+      {/* Rank */}
+      <div className="flex w-12 shrink-0 items-center justify-center border-r border-border bg-muted/30 font-mono text-sm font-bold text-muted-foreground">
+        #{apartment.rank}
+      </div>
+
+      {/* Thumbnail */}
+      <div className="relative hidden h-24 w-28 shrink-0 overflow-hidden sm:block">
+        <img
+          src={getApartmentImage(apartment)}
+          alt={apartment.title}
+          className="h-full w-full object-cover [transition:transform_400ms_cubic-bezier(0.23,1,0.32,1)] group-hover:scale-105"
+          onError={(e) => {
+            e.currentTarget.onerror = null
+            e.currentTarget.src = RESULT_CARD_IMAGES[0]
+          }}
+        />
+      </div>
+
+      {/* Content */}
+      <div className="flex flex-1 items-center gap-4 px-4 py-3">
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-sm font-semibold text-foreground">{apartment.title}</h3>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+            <span className="font-mono font-semibold text-primary">${apartment.price.toLocaleString()}/mo</span>
+            {apartment.sqft > 0 && <span>{apartment.sqft.toLocaleString()} ft²</span>}
+            {apartment.bedrooms > 0 && <span>{apartment.bedrooms} bed</span>}
+            {apartment.bathrooms > 0 && <span>{apartment.bathrooms} bath</span>}
+          </div>
+          {apartment.sourceUrl && (
+            <a
+              href={apartment.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground [transition:color_150ms_ease-out] hover:text-primary"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {sourceName} <ExternalLink className="h-2.5 w-2.5" aria-hidden />
+            </a>
+          )}
+        </div>
+
+        {/* Score */}
+        <div className="flex shrink-0 flex-col items-center rounded-xl bg-muted/50 px-3 py-2 dark:bg-surface-elevated">
+          <span className={cn('font-mono text-xl font-bold', getScoreColor(apartment.finalScore))}>{apartment.finalScore}</span>
+          <span className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground">score</span>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+/* ─── Detail Panel (slide-up drawer) ──── */
+
+function DetailPanel({ apartment, onClose }: { apartment: Apartment; onClose: () => void }) {
+  // Close on Escape
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [onClose])
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col justify-end sm:items-center sm:justify-center sm:p-4">
+      {/* Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      {/* Panel */}
+      <motion.div
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+        className="relative z-10 w-full max-h-[92vh] overflow-y-auto rounded-t-3xl bg-card shadow-2xl sm:max-h-[90vh] sm:max-w-2xl sm:rounded-3xl"
+      >
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-background/95 shadow-md backdrop-blur-sm [transition:background-color_150ms_ease-out] hover:bg-accent"
+          aria-label="Close details"
+        >
+          <X className="h-5 w-5 text-foreground" />
+        </button>
+
+        {/* Handle bar (mobile) */}
+        <div className="flex justify-center pt-3 sm:hidden">
+          <div className="h-1.5 w-12 rounded-full bg-border" />
+        </div>
+
+        {/* Image */}
+        <div className="relative h-56 w-full overflow-hidden sm:h-72 sm:rounded-tl-3xl">
+          <ListingImageCarousel apartment={apartment} className="h-full w-full" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+          <div className="absolute bottom-4 left-6 right-6">
+            <div className="flex items-center gap-2">
+              <span className="flex items-center gap-1.5 rounded-full bg-primary/90 px-3 py-1 text-xs font-bold text-white backdrop-blur-sm">
+                #{apartment.rank} {apartment.rank === 1 ? 'BEST MATCH' : apartment.matchLabel.toUpperCase()}
+              </span>
+            </div>
+            <h2 className="mt-2 text-2xl font-bold text-white">{apartment.title}</h2>
+          </div>
+        </div>
+
+        <div className="space-y-6 p-6">
+          {/* Key stats */}
+          <div className="flex flex-wrap gap-3">
+            {[
+              { icon: DollarSign, value: `$${apartment.price.toLocaleString()}`, sub: '/month', accent: true },
+              apartment.sqft > 0 ? { icon: Maximize2, value: apartment.sqft.toLocaleString(), sub: 'sq ft' } : null,
+              apartment.bedrooms > 0 ? { icon: Bed, value: `${apartment.bedrooms}`, sub: 'bed' } : null,
+              apartment.bathrooms > 0 ? { icon: Bath, value: `${apartment.bathrooms}`, sub: 'bath' } : null,
+              { icon: Calendar, value: `${apartment.leaseTermMonths}`, sub: 'mo lease' },
+            ].filter(Boolean).map((stat) => {
+              const Icon = stat!.icon
+              return (
+                <div key={stat!.sub} className="flex items-center gap-2 rounded-xl bg-muted/50 px-4 py-2.5 shadow-sm dark:bg-surface-elevated">
+                  <Icon className={cn('h-4 w-4', stat!.accent ? 'text-primary' : 'text-muted-foreground')} aria-hidden />
+                  <div>
+                    <p className={cn('font-mono text-lg font-bold', stat!.accent ? 'text-primary' : 'text-foreground')}>{stat!.value}</p>
+                    <p className="text-xs text-muted-foreground">{stat!.sub}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Score breakdown */}
+          <div>
+            <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
+              <BarChart3 className="h-4 w-4 text-primary" aria-hidden />
+              Score Breakdown
+            </h3>
+            <Card className="mt-3 border-sage-muted/30 bg-muted/30 p-5 dark:bg-surface-elevated/90">
+              <div className="mb-4 flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Overall Match</span>
+                <span className="font-mono text-3xl font-bold text-primary">
+                  {apartment.finalScore}
+                  <span className="text-base font-normal text-muted-foreground">/100</span>
+                </span>
+              </div>
+              <div className="space-y-3">
+                <ScoreBar label="Price" score={apartment.scoreBreakdown.priceScore} icon={DollarSign} delay={0.1} />
+                <ScoreBar label="Space" score={apartment.scoreBreakdown.spaceScore} icon={Layout} delay={0.2} />
+                <ScoreBar label="Amenities" score={apartment.scoreBreakdown.amenitiesScore} icon={Sparkles} delay={0.3} />
+                <ScoreBar label="Lease" score={apartment.scoreBreakdown.leaseScore} icon={Clock} delay={0.4} />
+              </div>
+              <p className="mt-4 rounded-2xl border border-primary/10 bg-primary/5 px-4 py-3 text-sm leading-6 text-muted-foreground dark:border-border dark:bg-background/60">
+                {getScoreNarrative(apartment)}
+              </p>
+            </Card>
+          </div>
+
+          {/* Amenities */}
+          {apartment.amenities.length > 0 && (
+            <div>
+              <h3 className="text-base font-semibold text-foreground">Amenities</h3>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {apartment.amenities.map((a) => {
+                  const Icon = amenityIconMap[a] ?? CheckCircle2
+                  return (
+                    <span key={a} className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-sm font-medium text-primary">
+                      <Icon className="h-4 w-4" aria-hidden />
+                      {displayAmenity(a)}
+                    </span>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* CTA */}
+          <div className="flex gap-3 pb-2">
+            <Button size="lg" className="h-14 flex-1 cursor-pointer text-base font-semibold active:scale-[0.97]" asChild>
+              <a href={apartment.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2">
+                View listing
+                <ExternalLink className="h-4 w-4" aria-hidden />
+              </a>
+            </Button>
+            <Button variant="outline" size="lg" className="h-14 cursor-pointer px-5 active:scale-[0.97]" aria-label="Save listing">
+              <Heart className="h-5 w-5" />
+            </Button>
+            <Button variant="outline" size="lg" className="h-14 cursor-pointer px-5 active:scale-[0.97]" aria-label="Share listing">
+              <Share2 className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
   )
 }
 
@@ -829,6 +869,7 @@ function LoadingScreen({
 export function ResultsPage() {
   const { searchId } = useParams<{ searchId: string }>()
   const navigate = useNavigate()
+  const shouldReduce = useReducedMotion()
 
   const [status, setStatus] = useState<JobStatus>('PENDING')
   const [apartments, setApartments] = useState<Apartment[]>([])
@@ -846,8 +887,6 @@ export function ResultsPage() {
     }
 
     let cancelled = false
-    // Exponential back-off state: starts at 3s, doubles on each non-terminal
-    // response, capped at 30s. Resets to 3s after a rate-limit pause clears.
     let delay = 3000
     let networkErrors = 0
 
@@ -876,7 +915,6 @@ export function ResultsPage() {
         } else if (data.status === 'FAILED') {
           navigate('/search')
         } else {
-          // Still PENDING or PROCESSING — back off and try again
           delay = Math.min(delay * 2, 30000)
           schedule(delay)
         }
@@ -884,7 +922,6 @@ export function ResultsPage() {
         if (cancelled) return
 
         if (axios.isAxiosError(err) && err.response?.status === 429) {
-          // Rate limited — honour Retry-After then resume
           const retryAfter = parseInt(err.response.headers['retry-after'] ?? '60', 10)
           setRateLimited(true)
           setRetryIn(retryAfter)
@@ -897,7 +934,7 @@ export function ResultsPage() {
               clearInterval(countdownId)
               if (!cancelled) {
                 setRateLimited(false)
-                delay = 3000 // reset back-off after the pause
+                delay = 3000
                 schedule(0)
               }
             }
@@ -905,7 +942,6 @@ export function ResultsPage() {
         } else if (axios.isAxiosError(err) && err.response && err.response.status >= 500) {
           navigate('/search')
         } else {
-          // Transient network error — retry up to 3 times before giving up
           networkErrors += 1
           if (networkErrors >= 3) {
             navigate('/search')
@@ -917,7 +953,7 @@ export function ResultsPage() {
       }
     }
 
-    poll() // immediate first check
+    poll()
 
     return () => {
       cancelled = true
@@ -931,6 +967,8 @@ export function ResultsPage() {
   }
 
   const topApartment = apartments[0]
+  const runnerUps = apartments.slice(1, 3)
+  const remaining = apartments.slice(3)
 
   return (
     <div className="min-h-screen bg-linear-to-b from-cream via-cream to-sage-muted/10 dark:from-background dark:via-background dark:to-accent/30">
@@ -939,7 +977,7 @@ export function ResultsPage() {
         <div className="container mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
           <Link
             to="/search"
-            className="inline-flex min-h-[44px] min-w-[44px] items-center gap-2 rounded-lg text-muted-foreground transition-colors duration-200 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex min-h-[44px] min-w-[44px] cursor-pointer items-center gap-2 rounded-lg text-muted-foreground [transition:color_150ms_ease-out] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="New search"
           >
             <ArrowLeft className="h-5 w-5" aria-hidden />
@@ -947,7 +985,7 @@ export function ResultsPage() {
           </Link>
           <Link
             to="/"
-            className="flex min-h-[44px] items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex min-h-[44px] cursor-pointer items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Nest home"
           >
             <img src="/nest-logo-transparent-cropped.png" alt="Nest logo" width={28} height={28} className="text-primary" />
@@ -960,7 +998,7 @@ export function ResultsPage() {
       <main className="container mx-auto max-w-5xl px-4 py-8 sm:py-12">
         {/* Celebration header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={shouldReduce ? {} : { opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           className="relative text-center"
@@ -968,7 +1006,7 @@ export function ResultsPage() {
           {showConfetti && <ConfettiDots />}
 
           <motion.div
-            initial={{ scale: 0 }}
+            initial={shouldReduce ? {} : { scale: 0.6 }}
             animate={{ scale: 1 }}
             transition={{ type: 'spring', damping: 12, stiffness: 200, delay: 0.2 }}
             className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-primary/10"
@@ -977,7 +1015,7 @@ export function ResultsPage() {
           </motion.div>
 
           <motion.h1
-            initial={{ opacity: 0, y: 12 }}
+            initial={shouldReduce ? {} : { opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
             className="mt-5 text-3xl font-bold tracking-tight text-foreground sm:text-4xl"
@@ -986,7 +1024,7 @@ export function ResultsPage() {
           </motion.h1>
 
           <motion.p
-            initial={{ opacity: 0 }}
+            initial={shouldReduce ? {} : { opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6 }}
             className="mx-auto mt-3 max-w-lg text-lg text-muted-foreground"
@@ -1002,7 +1040,7 @@ export function ResultsPage() {
           </motion.p>
 
           <motion.div
-            initial={{ opacity: 0 }}
+            initial={shouldReduce ? {} : { opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8 }}
             className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-muted-foreground"
@@ -1022,10 +1060,9 @@ export function ResultsPage() {
           </motion.div>
         </motion.div>
 
-        {/* Results list */}
         {apartments.length === 0 ? (
           <motion.div
-            initial={{ opacity: 0 }}
+            initial={shouldReduce ? {} : { opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
             className="mt-16 flex flex-col items-center gap-4 text-center"
@@ -1033,26 +1070,70 @@ export function ResultsPage() {
             <AlertCircle className="h-12 w-12 text-muted-foreground/40" aria-hidden />
             <p className="text-lg font-medium text-foreground">No listings found</p>
             <p className="text-muted-foreground">Try adjusting your filters or search again.</p>
-            <Button size="lg" className="mt-2" asChild>
+            <Button size="lg" className="mt-2 cursor-pointer" asChild>
               <Link to="/search">Adjust search</Link>
             </Button>
           </motion.div>
         ) : (
-          <div className="mt-10 space-y-4">
-            {apartments.map((apt) => (
-              <RankingCard
-                key={apt.id}
-                apartment={apt}
-                onViewDetails={() => setSelectedApartment(apt)}
+          <div className="mt-10 space-y-8">
+            {/* ─── #1: Hero Treatment ─── */}
+            {topApartment && (
+              <HeroResult
+                apartment={topApartment}
+                onSelect={() => setSelectedApartment(topApartment)}
+                shouldReduce={shouldReduce}
               />
-            ))}
+            )}
+
+            {/* ─── #2-3: Runner-Up Grid ─── */}
+            {runnerUps.length > 0 && (
+              <div>
+                <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
+                  <Medal className="h-5 w-5 text-primary" aria-hidden />
+                  Runner-Ups
+                </h2>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {runnerUps.map((apt) => (
+                    <RunnerUpCard
+                      key={apt.id}
+                      apartment={apt}
+                      onSelect={() => setSelectedApartment(apt)}
+                      shouldReduce={shouldReduce}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ─── #4+: Compact List ─── */}
+            {remaining.length > 0 && (
+              <div>
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="h-px flex-1 bg-border" />
+                  <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    {remaining.length} more {remaining.length === 1 ? 'result' : 'results'}
+                  </span>
+                  <div className="h-px flex-1 bg-border" />
+                </div>
+                <div className="space-y-2">
+                  {remaining.map((apt) => (
+                    <CompactCard
+                      key={apt.id}
+                      apartment={apt}
+                      onSelect={() => setSelectedApartment(apt)}
+                      shouldReduce={shouldReduce}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {/* Bottom CTA */}
         {apartments.length > 0 && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={shouldReduce ? {} : { opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             className="mt-12 rounded-2xl border border-sage-muted/30 bg-muted/40 p-8 text-center backdrop-blur-sm dark:border-border dark:bg-card/90"
@@ -1061,20 +1142,20 @@ export function ResultsPage() {
             <p className="mt-1 text-muted-foreground">
               Adjust your priorities and search again — it&apos;s always free.
             </p>
-            <Button size="lg" className="mt-5 h-14 px-10 text-base" asChild>
+            <Button size="lg" className="mt-5 h-14 cursor-pointer px-10 text-base active:scale-[0.97]" asChild>
               <Link to="/search" className="inline-flex items-center gap-2">
                 Refine search
-                <ArrowLeft className="h-4 w-4 rotate-180" aria-hidden />
+                <ArrowRight className="h-4 w-4" aria-hidden />
               </Link>
             </Button>
           </motion.div>
         )}
       </main>
 
-      {/* Detail modal for #1 */}
+      {/* Detail panel */}
       <AnimatePresence>
         {selectedApartment && (
-          <ApartmentDetailModal apartment={selectedApartment} onClose={() => setSelectedApartment(null)} />
+          <DetailPanel apartment={selectedApartment} onClose={() => setSelectedApartment(null)} />
         )}
       </AnimatePresence>
     </div>

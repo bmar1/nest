@@ -131,7 +131,6 @@ function AnimCount({ value, suffix = '' }: { value: number; suffix?: string }) {
     function tick(now: number) {
       const elapsed = now - startTime
       const progress = Math.min(elapsed / duration, 1)
-      // ease-out cubic
       const eased = 1 - Math.pow(1 - progress, 3)
       start = Math.round(eased * value)
       setDisplay(start)
@@ -141,42 +140,6 @@ function AnimCount({ value, suffix = '' }: { value: number; suffix?: string }) {
   }, [isInView, value])
 
   return <span ref={ref}>{display}{suffix}</span>
-}
-
-/* ─── Glow Card (mouse-tracking radial glow) ─── */
-
-function GlowCard({ children, className }: { children: React.ReactNode; className?: string }) {
-  const cardRef = useRef<HTMLDivElement>(null)
-  const glowRef = useRef<HTMLDivElement>(null)
-  const shouldReduce = useReducedMotion()
-
-  function handleMouseMove(e: React.MouseEvent) {
-    if (shouldReduce || !cardRef.current || !glowRef.current) return
-    const rect = cardRef.current.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    glowRef.current.style.background = `radial-gradient(350px circle at ${x}px ${y}px, var(--card-spotlight), transparent 65%)`
-  }
-
-  function handleMouseLeave() {
-    if (glowRef.current) glowRef.current.style.background = 'none'
-  }
-
-  return (
-    <div
-      ref={cardRef}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      className={cn('group relative', className)}
-    >
-      {/* Glow layer */}
-      <div
-        ref={glowRef}
-        className="pointer-events-none absolute -inset-px z-20 rounded-[inherit] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-      />
-      <div className="relative z-10">{children}</div>
-    </div>
-  )
 }
 
 /* ─── Scroll Progress Bar ──────────────── */
@@ -212,7 +175,6 @@ function StepCard({ step, index }: { step: typeof steps[0]; index: number }) {
   const ref = useRef<HTMLDivElement>(null)
   const isInView = useInView(ref, { once: true, margin: '-60px' })
   const shouldReduce = useReducedMotion()
-  // useSpring gives the tilt natural momentum — direct useMotionValue feels robotic (Emil: spring for decorative mouse tracking)
   const rawX = useMotionValue(0)
   const rawY = useMotionValue(0)
   const mouseX = useSpring(rawX, { stiffness: 150, damping: 20 })
@@ -262,9 +224,9 @@ function StepCard({ step, index }: { step: typeof steps[0]; index: number }) {
           <div className={cn('h-px flex-1', isGreen ? 'bg-secondary/25' : 'bg-golden/25')} />
         </div>
 
-        {/* Icon */}
+        {/* Icon — reduced hover scale per Emil: scale-105 max */}
         <div className={cn(
-          'mt-6 flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-110',
+          'mt-6 flex h-14 w-14 items-center justify-center rounded-2xl [transition:transform_200ms_cubic-bezier(0.23,1,0.32,1)] group-hover:scale-105',
           isGreen ? 'bg-secondary/10 text-secondary' : 'bg-golden/15 text-golden'
         )}>
           <step.icon className="h-7 w-7" aria-hidden />
@@ -272,7 +234,7 @@ function StepCard({ step, index }: { step: typeof steps[0]; index: number }) {
 
         {/* Content */}
         <h3 className="mt-5 text-xl font-semibold text-foreground">{step.title}</h3>
-        <p className="mt-2 leading-relaxed text-muted-foreground">{step.description}</p>
+        <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{step.description}</p>
       </div>
     </motion.div>
   )
@@ -300,10 +262,10 @@ function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
             className="fixed top-20 right-4 left-4 z-[70] rounded-2xl border border-border bg-cream/98 p-6 shadow-xl backdrop-blur-md sm:left-auto sm:w-72 dark:bg-card/98"
           >
             <nav className="flex flex-col gap-3">
-              <a href="#problem" onClick={onClose} className="cursor-pointer rounded-xl px-4 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted">The Problem</a>
-              <a href="#features" onClick={onClose} className="cursor-pointer rounded-xl px-4 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted">Features</a>
-              <a href="#how-it-works" onClick={onClose} className="cursor-pointer rounded-xl px-4 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted">How It Works</a>
-              <a href="#testimonials" onClick={onClose} className="cursor-pointer rounded-xl px-4 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted">Testimonials</a>
+              <a href="#problem" onClick={onClose} className="cursor-pointer rounded-xl px-4 py-3 text-base font-medium text-foreground [transition:background-color_150ms_ease-out] hover:bg-muted">The Problem</a>
+              <a href="#features" onClick={onClose} className="cursor-pointer rounded-xl px-4 py-3 text-base font-medium text-foreground [transition:background-color_150ms_ease-out] hover:bg-muted">Features</a>
+              <a href="#how-it-works" onClick={onClose} className="cursor-pointer rounded-xl px-4 py-3 text-base font-medium text-foreground [transition:background-color_150ms_ease-out] hover:bg-muted">How It Works</a>
+              <a href="#testimonials" onClick={onClose} className="cursor-pointer rounded-xl px-4 py-3 text-base font-medium text-foreground [transition:background-color_150ms_ease-out] hover:bg-muted">Testimonials</a>
               <hr className="border-border" />
               <Button size="lg" asChild className="w-full">
                 <Link to="/search" onClick={onClose}>
@@ -352,10 +314,10 @@ export function LandingPage() {
       {/* Ambient background orbs */}
       <AmbientOrbs />
 
-      {/* ─── HERO-OVERLAY NAV ─── */}
+      {/* ─── HERO-OVERLAY NAV (pill-shaped, slightly white) ─── */}
       <nav
         className={cn(
-          'absolute top-6 left-1/2 z-50 w-[95%] max-w-7xl -translate-x-1/2 transition-opacity duration-300 sm:w-[90%]',
+          'absolute top-6 left-1/2 z-50 w-[95%] max-w-7xl -translate-x-1/2 [transition:opacity_300ms_ease-out] sm:w-[90%]',
           pastHero ? 'pointer-events-none opacity-0' : 'opacity-100'
         )}
       >
@@ -366,7 +328,7 @@ export function LandingPage() {
           </Link>
           <div className="hidden items-center gap-6 md:flex">
             {[['#problem', 'The Problem'], ['#features', 'Features'], ['#how-it-works', 'How It Works']].map(([href, label]) => (
-              <a key={href} href={href} className="cursor-pointer text-sm font-medium text-white/70 transition-colors duration-200 hover:text-white">{label}</a>
+              <a key={href} href={href} className="cursor-pointer text-sm font-medium text-white/70 [transition:color_200ms_ease-out] hover:text-white">{label}</a>
             ))}
             <ThemeToggle />
             <Button size="sm" className="rounded-full" asChild>
@@ -387,7 +349,7 @@ export function LandingPage() {
         </div>
       </nav>
 
-      {/* ─── PILL NAV ─── */}
+      {/* ─── PILL NAV (appears after scrolling past hero — no pulse-glow per Emil: high-frequency element) ─── */}
       <AnimatePresence>
         {pastHero && (
           <motion.nav
@@ -404,14 +366,14 @@ export function LandingPage() {
               </Link>
               <div className="hidden items-center gap-4 md:flex">
                 {[['#problem', 'Problem'], ['#features', 'Features'], ['#how-it-works', 'How It Works']].map(([href, label]) => (
-                  <a key={href} href={href} className="group relative cursor-pointer text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+                  <a key={href} href={href} className="group relative cursor-pointer text-sm font-medium text-muted-foreground [transition:color_150ms_ease-out] hover:text-foreground">
                     {label}
-                    <span className="absolute -bottom-0.5 left-0 h-[1.5px] w-0 rounded-full bg-secondary transition-all duration-200 group-hover:w-full" />
+                    <span className="absolute -bottom-0.5 left-0 h-[1.5px] w-0 rounded-full bg-secondary [transition:width_200ms_cubic-bezier(0.23,1,0.32,1)] group-hover:w-full" />
                   </a>
                 ))}
               </div>
               <ThemeToggle />
-              <Button size="sm" className="rounded-full animate-pulse-glow" asChild>
+              <Button size="sm" className="rounded-full" asChild>
                 <Link to="/search">
                   Start search
                   <ChevronRight className="ml-1 h-3.5 w-3.5" aria-hidden />
@@ -419,7 +381,7 @@ export function LandingPage() {
               </Button>
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-foreground hover:bg-muted md:hidden"
+                className="flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center rounded-xl text-foreground hover:bg-muted md:hidden"
                 aria-label="Toggle menu"
                 aria-expanded={mobileMenuOpen}
               >
@@ -434,7 +396,7 @@ export function LandingPage() {
 
       {/* ─── HERO ─── */}
       <section ref={heroRef} className="relative z-10 h-[105vh] w-full overflow-hidden">
-        {/* Cinematic image reveal: starts zoomed + blurred, sharpens into place */}
+        {/* Cinematic image reveal */}
         <motion.img
           src="/hero-apartment.png"
           alt="Beautiful modern apartment with warm natural lighting overlooking the city"
@@ -477,11 +439,11 @@ export function LandingPage() {
                   initial={shouldReduce ? {} : { opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.9, duration: 0.5, ease: EASE_OUT }}
-                  className="mt-8 flex flex-wrap items-center gap-3"
+                  className="mt-10 flex flex-wrap items-center gap-3"
                 >
                   <Button
                     size="sm"
-                    className="cursor-pointer rounded-full bg-golden px-6 text-sm font-semibold text-black shadow-xl shadow-golden/20 transition-transform duration-150 hover:bg-golden/90 active:scale-[0.97]"
+                    className="cursor-pointer rounded-full bg-golden px-6 text-sm font-semibold text-black shadow-xl shadow-golden/20 [transition:background-color_150ms_ease-out,transform_140ms_cubic-bezier(0.23,1,0.32,1)] hover:bg-golden/90 active:scale-[0.97]"
                     asChild
                   >
                     <Link to="/search" className="inline-flex items-center gap-1.5">
@@ -491,7 +453,7 @@ export function LandingPage() {
                   </Button>
                   <a
                     href="#how-it-works"
-                    className="cursor-pointer rounded-full border border-white/25 bg-white/10 px-5 py-2 text-sm font-medium text-white/80 backdrop-blur-sm transition-all duration-200 hover:bg-white/20 hover:text-white active:scale-[0.97]"
+                    className="cursor-pointer rounded-full border border-white/25 bg-white/10 px-5 py-2 text-sm font-medium text-white/80 backdrop-blur-sm [transition:background-color_200ms_ease-out,color_200ms_ease-out,transform_140ms_cubic-bezier(0.23,1,0.32,1)] hover:bg-white/20 hover:text-white active:scale-[0.97]"
                   >
                     How it works
                   </a>
@@ -524,36 +486,34 @@ export function LandingPage() {
         </motion.div>
       </section>
 
-      {/* ─── GOLDEN BRIDGE ─── Bleeds from hero bottom into problem section */}
+      {/* ─── GOLDEN BRIDGE ─── Softened opacity per Refactoring UI audit */}
       <div className="pointer-events-none relative z-10 -mt-0 h-32" aria-hidden>
-        {/* Light mode bridge - stronger opacity and deeper gold to show against cream */}
         <div
           className="absolute inset-x-0 top-0 h-full dark:hidden"
           style={{
-            background: 'radial-gradient(ellipse 100% 120% at 50% 0%, oklch(0.62 0.18 65 / 0.75) 0%, oklch(0.68 0.15 65 / 0.35) 40%, transparent 80%)',
+            background: 'radial-gradient(ellipse 100% 120% at 50% 0%, oklch(0.62 0.18 65 / 0.45) 0%, oklch(0.68 0.15 65 / 0.2) 40%, transparent 80%)',
           }}
         />
-        {/* Dark mode bridge */}
         <div className="absolute inset-x-0 top-0 h-full hidden dark:block" style={{ background: 'radial-gradient(ellipse 80% 100% at 50% 0%, oklch(0.78 0.11 65 / 0.25) 0%, transparent 70%)' }} />
       </div>
 
       {/* ─── THE PROBLEM ─── */}
-      <section id="problem" className="relative z-10 bg-background py-24 sm:py-32">
-        {/* Lingering golden warmth at top — extending bridge from hero */}
+      <section id="problem" className="relative z-10 bg-background py-28 sm:py-36">
+        {/* Lingering golden warmth at top */}
         <div className="pointer-events-none absolute -top-10 left-1/2 h-[300px] w-[800px] -translate-x-1/2 rounded-full bg-golden/[0.08] blur-[100px] dark:bg-golden/[0.06]" />
-        {/* Subtle green ambient — bottom right */}
         <div className="pointer-events-none absolute -bottom-20 -right-20 h-[300px] w-[300px] rounded-full bg-secondary/[0.06] blur-[100px]" />
 
         <div className="container relative z-10 mx-auto max-w-6xl px-4">
           <motion.div {...fadeUp} className="mx-auto max-w-2xl text-center">
-            <span className="inline-flex items-center gap-2 rounded-full border border-destructive/20 bg-destructive/8 px-4 py-1.5 text-sm font-medium text-destructive">
-              <Zap className="h-3.5 w-3.5" aria-hidden />
+            {/* De-emphasized badge per Refactoring UI: labels are secondary */}
+            <span className="text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground">
               The Problem
             </span>
-            <h2 className="mt-5 text-3xl font-bold tracking-tight text-foreground text-balance sm:text-4xl">
+            {/* Smaller heading — not the main conversion section */}
+            <h2 className="mt-4 text-2xl font-bold tracking-tight text-foreground text-balance sm:text-3xl">
               The old way is broken
             </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
+            <p className="mt-3 text-base text-muted-foreground sm:text-lg">
               Apartment hunting hasn't changed in a decade. Here's what it costs you.
             </p>
           </motion.div>
@@ -566,9 +526,9 @@ export function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-50px' }}
                 transition={{ delay: i * 0.08, duration: 0.4, ease: EASE_OUT }}
-                className="group cursor-default rounded-2xl border border-border bg-card/70 p-8 text-center backdrop-blur-sm transition-all duration-200 hover:border-destructive/20 hover:bg-card"
+                className="group cursor-default rounded-2xl border border-border bg-card/70 p-8 text-center backdrop-blur-sm [transition:border-color_180ms_ease-out,background-color_180ms_ease-out] hover:border-destructive/20 hover:bg-card"
               >
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-destructive/8 transition-transform duration-300 group-hover:scale-110">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-destructive/8 [transition:transform_200ms_cubic-bezier(0.23,1,0.32,1)] group-hover:scale-105">
                   <point.icon className="h-6 w-6 text-destructive/70" aria-hidden />
                 </div>
                 <div className="mt-5 font-heading text-4xl font-bold text-foreground"><AnimCount value={parseInt(point.value)} suffix={point.value.replace(/[0-9]/g, '')} /></div>
@@ -579,12 +539,12 @@ export function LandingPage() {
           </div>
 
           <motion.div {...fadeUp} className="mt-14 text-center">
-            <p className="text-xl text-muted-foreground">
+            <p className="text-lg text-muted-foreground sm:text-xl">
               Nest finds your shortlist in <span className="font-semibold text-primary">under 1 minute</span>.
             </p>
             <Button
               size="lg"
-              className="mt-6 h-12 cursor-pointer rounded-full px-8 transition-all duration-200 active:scale-[0.97]"
+              className="mt-6 h-12 cursor-pointer rounded-full px-8 [transition:background-color_200ms_ease-out,transform_140ms_cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97]"
               asChild
             >
               <Link to="/search" className="inline-flex items-center gap-2">
@@ -597,25 +557,23 @@ export function LandingPage() {
       </section>
 
       {/* ─── FEATURES / WHY NEST ─── */}
-      <section
-        id="features"
-        className="relative z-10 border-t border-border py-24 sm:py-32"
-      >
+      {/* No border-t — spacing alone separates per Refactoring UI */}
+      <section id="features" className="relative z-10 py-28 sm:py-36">
         <div className="container mx-auto max-w-6xl px-4">
-          <motion.div {...fadeUp} className="mx-auto max-w-2xl text-center">
-            {/* Green badge for this section */}
-            <span className="inline-flex items-center gap-2 rounded-full border border-secondary/25 bg-secondary/8 px-4 py-1.5 text-sm font-medium text-secondary">
-              <Sparkles className="h-3.5 w-3.5" aria-hidden />
+          {/* Left-aligned heading per Refactoring UI: "Don't center everything" */}
+          <motion.div {...fadeUp} className="max-w-xl">
+            <span className="text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground">
               Why Nest
             </span>
-            <h2 className="mt-5 text-3xl font-bold tracking-tight text-foreground text-balance sm:text-4xl">
+            <h2 className="mt-4 text-2xl font-bold tracking-tight text-foreground text-balance sm:text-3xl">
               Everything you need, nothing you don't
             </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
+            <p className="mt-3 text-base text-muted-foreground sm:text-lg">
               We built Nest because we were tired of the search ourselves.
             </p>
           </motion.div>
 
+          {/* Removed GlowCard: simple shadow elevation per Refactoring UI's shadow scale principle */}
           <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((feature, i) => (
               <motion.div
@@ -626,15 +584,13 @@ export function LandingPage() {
                 transition={{ duration: 0.4, delay: i * 0.08, ease: EASE_OUT }}
                 className="group"
               >
-                <GlowCard className="h-full">
-                  <Card className={cn('h-full cursor-default border-2 border-border bg-card/90 p-8 shadow-sm backdrop-blur-sm dark:bg-card [transition:transform_200ms_cubic-bezier(0.23,1,0.32,1),box-shadow_220ms_cubic-bezier(0.23,1,0.32,1),border-color_180ms_ease-out] hover:-translate-y-1.5 hover:shadow-xl', feature.hoverBorder)}>
-                    <div className={cn('flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-150 group-hover:scale-110', feature.color)}>
-                      <feature.icon className="h-7 w-7" aria-hidden />
-                    </div>
-                    <h3 className="mt-6 text-xl font-semibold text-foreground">{feature.title}</h3>
-                    <p className="mt-2 leading-relaxed text-muted-foreground">{feature.description}</p>
-                  </Card>
-                </GlowCard>
+                <Card className={cn('h-full cursor-default border-2 border-border bg-card/90 p-8 shadow-sm backdrop-blur-sm dark:bg-card [transition:transform_200ms_cubic-bezier(0.23,1,0.32,1),box-shadow_220ms_cubic-bezier(0.23,1,0.32,1),border-color_180ms_ease-out] hover:-translate-y-0.5 hover:shadow-lg', feature.hoverBorder)}>
+                  <div className={cn('flex h-14 w-14 items-center justify-center rounded-2xl [transition:transform_200ms_cubic-bezier(0.23,1,0.32,1)] group-hover:scale-105', feature.color)}>
+                    <feature.icon className="h-7 w-7" aria-hidden />
+                  </div>
+                  <h3 className="mt-6 text-xl font-semibold text-foreground">{feature.title}</h3>
+                  <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{feature.description}</p>
+                </Card>
               </motion.div>
             ))}
           </div>
@@ -647,24 +603,21 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ─── HOW IT WORKS (Clean card grid — no timeline) ─── */}
-      <section id="how-it-works" className="relative z-10 border-t border-border py-24 sm:py-32">
-        {/* Section-local ambient — green left, golden right */}
+      {/* ─── HOW IT WORKS ─── Key conversion section — keeps larger heading */}
+      <section id="how-it-works" className="relative z-10 py-28 sm:py-36">
         <div className="pointer-events-none absolute -bottom-10 -left-10 h-[320px] w-[320px] rounded-full bg-secondary/[0.05] blur-[100px]" />
         <div className="pointer-events-none absolute -top-10 -right-10 h-[280px] w-[280px] rounded-full bg-primary/[0.04] blur-[100px]" />
 
         <div className="container mx-auto max-w-5xl px-4">
           <motion.div {...fadeUp} className="text-center">
-            {/* Golden badge for this section */}
-            <span className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/8 px-4 py-1.5 text-sm font-medium text-primary">
-              <Zap className="h-3.5 w-3.5" aria-hidden />
+            <span className="text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground">
               How It Works
             </span>
-            <h2 className="mt-5 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Three steps. One minute.</h2>
-            <p className="mt-4 text-lg text-muted-foreground">No account required. No commitment. Just your shortlist.</p>
+            <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Three steps. One minute.</h2>
+            <p className="mt-3 text-base text-muted-foreground sm:text-lg">No account required. No commitment. Just your shortlist.</p>
           </motion.div>
 
-          {/* Connector line: golden → green → golden */}
+          {/* Connector line */}
           <div className="relative mt-20">
             <div className="absolute top-[4.25rem] left-[8%] right-[8%] hidden h-px lg:block" style={{ background: 'linear-gradient(to right, transparent, oklch(0.75 0.12 65 / 0.3) 30%, oklch(0.45 0.12 145 / 0.3) 50%, oklch(0.75 0.12 65 / 0.3) 70%, transparent)' }} />
 
@@ -676,7 +629,7 @@ export function LandingPage() {
           </div>
 
           <motion.div {...fadeUp} className="mt-14 text-center">
-            <Button size="lg" className="h-14 cursor-pointer rounded-full px-10 text-base transition-transform duration-150 active:scale-[0.97] sm:px-12" asChild>
+            <Button size="lg" className="h-14 cursor-pointer rounded-full px-10 text-base shadow-lg shadow-primary/20 [transition:background-color_200ms_ease-out,transform_140ms_cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] sm:px-12" asChild>
               <Link to="/search" className="inline-flex items-center gap-2">
                 Try it now — it's free
                 <ArrowRight className="h-5 w-5" aria-hidden />
@@ -687,7 +640,7 @@ export function LandingPage() {
       </section>
 
       {/* ─── TRUST & TRANSPARENCY ─── */}
-      <section className="relative z-10 border-t border-border py-24 sm:py-32">
+      <section className="relative z-10 py-28 sm:py-36">
         <div className="container mx-auto max-w-6xl px-4">
           <div className="grid items-center gap-16 lg:grid-cols-2">
             <motion.div
@@ -699,10 +652,10 @@ export function LandingPage() {
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary/10 text-secondary">
                 <Shield className="h-7 w-7" aria-hidden />
               </div>
-              <h2 className="mt-6 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+              <h2 className="mt-6 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                 Trust through transparency
               </h2>
-              <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
+              <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
                 See exactly how each apartment scores. Price, space, amenities,
                 lease flexibility — all weighted by your priority. No black boxes.
               </p>
@@ -714,10 +667,10 @@ export function LandingPage() {
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true }}
                     transition={{ delay: i * 0.06, ease: EASE_OUT }}
-                    className="flex cursor-default items-center gap-4 text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                    className="flex cursor-default items-center gap-4 text-muted-foreground [transition:color_200ms_ease-out] hover:text-foreground"
                   >
                     <CheckCircle2 className="h-6 w-6 shrink-0 text-secondary" aria-hidden />
-                    <span className="text-lg">{point}</span>
+                    <span className="text-base sm:text-lg">{point}</span>
                   </motion.li>
                 ))}
               </ul>
@@ -734,7 +687,7 @@ export function LandingPage() {
                   <img
                     src="/apartment-modern.png"
                     alt="Modern apartment interior with open-concept living space"
-                    className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
+                    className="h-full w-full object-cover [transition:transform_400ms_cubic-bezier(0.23,1,0.32,1)] hover:scale-105"
                   />
                   <div className="absolute top-3 right-3 rounded-full bg-golden px-3 py-1 text-xs font-semibold text-black backdrop-blur-sm">
                     94% Match
@@ -766,7 +719,7 @@ export function LandingPage() {
                     ].map((score) => (
                       <div key={score.label} className="group">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground transition-colors group-hover:text-foreground">{score.label}</span>
+                          <span className="text-muted-foreground [transition:color_150ms_ease-out] group-hover:text-foreground">{score.label}</span>
                           <span className="font-mono font-semibold text-foreground">{score.value}</span>
                         </div>
                         <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
@@ -793,17 +746,16 @@ export function LandingPage() {
       </section>
 
       {/* ─── TESTIMONIALS ─── */}
-      <section id="testimonials" className="relative z-10 border-t border-border py-24 sm:py-32">
-        {/* Green ambient for testimonials section */}
+      <section id="testimonials" className="relative z-10 py-28 sm:py-36">
         <div className="pointer-events-none absolute top-0 left-0 h-[300px] w-[400px] rounded-full bg-secondary/[0.04] blur-[120px]" />
         <div className="container mx-auto max-w-6xl px-4">
-          <motion.div {...fadeUp} className="mx-auto max-w-2xl text-center">
-            <span className="inline-flex items-center gap-2 rounded-full border border-secondary/25 bg-secondary/8 px-4 py-1.5 text-sm font-medium text-secondary">
-              <Quote className="h-3.5 w-3.5" aria-hidden />
+          {/* Left-aligned heading per Refactoring UI */}
+          <motion.div {...fadeUp} className="max-w-xl">
+            <span className="text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground">
               Loved by renters
             </span>
-            <h2 className="mt-5 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Real people. Real relief.</h2>
-            <p className="mt-4 text-lg text-muted-foreground">Real homes found.</p>
+            <h2 className="mt-4 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Real people. Real relief.</h2>
+            <p className="mt-3 text-base text-muted-foreground">Real homes found.</p>
           </motion.div>
 
           <div className="mt-16 grid gap-8 md:grid-cols-3">
@@ -817,14 +769,14 @@ export function LandingPage() {
                 className="group"
               >
                 <Card className={cn(
-                  'h-full cursor-default border-border bg-card/90 p-8 backdrop-blur-sm dark:bg-card [transition:transform_200ms_cubic-bezier(0.23,1,0.32,1),box-shadow_220ms_cubic-bezier(0.23,1,0.32,1),border-color_180ms_ease-out] hover:-translate-y-1 hover:shadow-lg',
+                  'h-full cursor-default border-border bg-card/90 p-8 backdrop-blur-sm dark:bg-card [transition:transform_200ms_cubic-bezier(0.23,1,0.32,1),box-shadow_220ms_cubic-bezier(0.23,1,0.32,1),border-color_180ms_ease-out] hover:-translate-y-0.5 hover:shadow-lg',
                   i % 2 === 0 ? 'hover:border-secondary/20' : 'hover:border-primary/15'
                 )}>
                   <Quote className={cn(
-                    'h-10 w-10 transition-colors duration-300',
+                    'h-10 w-10 [transition:color_300ms_ease-out]',
                     i % 2 === 0 ? 'text-secondary/40 group-hover:text-secondary/70' : 'text-golden/40 group-hover:text-golden/70'
                   )} aria-hidden />
-                  <blockquote className="mt-4 text-lg leading-relaxed text-foreground">
+                  <blockquote className="mt-4 text-base leading-relaxed text-foreground">
                     &ldquo;{t.quote}&rdquo;
                   </blockquote>
                   <footer className="mt-6 flex items-center gap-3">
@@ -844,11 +796,9 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ─── FINAL CTA ─── */}
-      <section className="relative z-10 overflow-hidden border-t-2 border-primary/30 bg-background py-24 sm:py-32">
-        {/* Golden orb — large warm top glow, carries warmth from golden palette */}
+      {/* ─── FINAL CTA ─── No whileHover scale per Emil: only active:scale press feedback */}
+      <section className="relative z-10 overflow-hidden border-t-2 border-primary/30 bg-background py-28 sm:py-36">
         <div className="pointer-events-none absolute -top-32 left-1/2 h-[500px] w-[600px] -translate-x-1/2 rounded-full bg-golden/[0.14] blur-[120px] dark:bg-golden/[0.09]" />
-        {/* Green ambient corners */}
         <div className="pointer-events-none absolute -bottom-10 -left-10 h-[200px] w-[200px] rounded-full bg-secondary/[0.06] blur-[80px]" />
         <div className="pointer-events-none absolute -bottom-10 -right-10 h-[200px] w-[200px] rounded-full bg-secondary/[0.06] blur-[80px]" />
 
@@ -864,13 +814,13 @@ export function LandingPage() {
             <h2 className="mt-8 text-3xl font-bold tracking-tight text-foreground text-balance sm:text-4xl lg:text-5xl">
               Ready to find your nest?
             </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
+            <p className="mt-4 text-base text-muted-foreground sm:text-lg">
               Get your personalized shortlist in under 1 minute. Completely free. No signup. No strings attached.
             </p>
-            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="mt-10 inline-block">
+            <div className="mt-10 inline-block">
               <Button
                 size="lg"
-                className="h-14 cursor-pointer rounded-full px-10 text-base shadow-lg shadow-primary/20 sm:h-16 sm:px-12 sm:text-lg"
+                className="h-14 cursor-pointer rounded-full px-10 text-base shadow-lg shadow-primary/20 [transition:background-color_200ms_ease-out,transform_140ms_cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] sm:h-16 sm:px-12 sm:text-lg"
                 asChild
               >
                 <Link to="/search" className="inline-flex items-center gap-2">
@@ -879,7 +829,7 @@ export function LandingPage() {
                   <ChevronRight className="h-5 w-5" aria-hidden />
                 </Link>
               </Button>
-            </motion.div>
+            </div>
           </motion.div>
         </div>
       </section>
@@ -898,12 +848,11 @@ export function LandingPage() {
               <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
                 Apartment hunting, reimagined. One search, transparent scores, your shortlist in under a minute.
               </p>
-              {/* GitHub */}
               <a
                 href="https://github.com/bmar1/nest"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-5 inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-all duration-200 hover:border-primary/40 hover:text-primary"
+                className="mt-5 inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-medium text-muted-foreground [transition:border-color_200ms_ease-out,color_200ms_ease-out] hover:border-primary/40 hover:text-primary"
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                   <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
@@ -914,7 +863,7 @@ export function LandingPage() {
 
             {/* Product */}
             <div>
-              <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-foreground">Product</h3>
+              <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.15em] text-foreground">Product</h3>
               <ul className="space-y-3 text-sm">
                 {[
                   { label: 'The Problem', href: '#problem' },
@@ -925,14 +874,14 @@ export function LandingPage() {
                   <li key={label}>
                     <a
                       href={href}
-                      className="cursor-pointer text-muted-foreground transition-colors duration-150 hover:text-primary"
+                      className="cursor-pointer text-muted-foreground [transition:color_150ms_ease-out] hover:text-primary"
                     >
                       {label}
                     </a>
                   </li>
                 ))}
                 <li>
-                  <Link to="/search" className="font-medium text-primary transition-colors duration-150 hover:text-primary/80">
+                  <Link to="/search" className="font-medium text-primary [transition:color_150ms_ease-out] hover:text-primary/80">
                     Start searching →
                   </Link>
                 </li>
@@ -941,7 +890,7 @@ export function LandingPage() {
 
             {/* Company */}
             <div>
-              <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-foreground">Company</h3>
+              <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.15em] text-foreground">Company</h3>
               <ul className="space-y-3 text-sm">
                 {[
                   { label: 'About', href: '#' },
@@ -954,7 +903,7 @@ export function LandingPage() {
                       href={href}
                       target={href.startsWith('http') ? '_blank' : undefined}
                       rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                      className="cursor-pointer text-muted-foreground transition-colors duration-150 hover:text-primary"
+                      className="cursor-pointer text-muted-foreground [transition:color_150ms_ease-out] hover:text-primary"
                     >
                       {label}
                     </a>

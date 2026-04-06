@@ -110,6 +110,12 @@
 
 /* ─── Base layer ─── */
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  [id] {
+    scroll-margin-top: 6rem;
+  }
   * {
     border-color: var(--color-border);
   }
@@ -264,6 +270,10 @@
   .animate-ambient-1,
   .animate-ambient-2 {
     animation: none;
+  }
+
+  html {
+    scroll-behavior: auto;
   }
 
   .surface-card,

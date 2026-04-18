@@ -37,7 +37,8 @@ public class SearchController {
         if (results.getStatus() == com.nest.nestapp.model.JobStatus.COMPLETED) {
             return ResponseEntity.ok(results);
         } else if (results.getStatus() == com.nest.nestapp.model.JobStatus.FAILED) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(results);
+            // FAILED is a valid terminal poll state — not an HTTP server error (avoid axios 5xx).
+            return ResponseEntity.ok(results);
         } else {
             return ResponseEntity.status(HttpStatus.ACCEPTED).body(results);
         }

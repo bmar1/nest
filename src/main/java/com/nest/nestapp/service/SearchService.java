@@ -192,6 +192,7 @@ public class SearchService {
                     .totalAttempted(job.getTotalAttempted())
                     .totalSuccessful(job.getTotalSuccessful())
                     .totalFailed(job.getTotalFailed())
+                    .errorMessage(job.getErrorMessage())
                     .build();
         } else {
             return SearchResultsDto.builder()

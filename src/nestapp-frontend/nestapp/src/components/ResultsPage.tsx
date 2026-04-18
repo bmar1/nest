@@ -32,7 +32,8 @@ export function ResultsPage({ searchId }: ResultsPageProps) {
   useEffect(() => {
     const pollResults = async () => {
       try {
-        const response = await axios.get(`http://localhost:8080/api/v1/search/${searchId}/results`);
+        const base = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080').replace(/\/$/, '');
+        const response = await axios.get(`${base}/api/v1/search/${searchId}/results`);
         setStatus(response.data.status);
         
         if (response.data.status === 'COMPLETED') {

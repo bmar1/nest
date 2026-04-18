@@ -22,4 +22,6 @@ public class SearchResultsDto {
     private Integer totalFailed;
     private List<ApartmentDto> apartments;
     private Integer estimatedWaitSeconds;
+    /** Present when status is FAILED (scraping/processing error), for client UX — not a transport error. */
+    private String errorMessage;
 }

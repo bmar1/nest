@@ -79,6 +79,7 @@ interface SearchResultsDto {
   totalSuccessful?: number
   apartments?: ApartmentDto[]
   estimatedWaitSeconds?: number
+  errorMessage?: string
 }
 
 /* ─── Display Types ────────────────────── */
@@ -895,11 +896,13 @@ export function ResultsPage() {
       timeoutRef.current = setTimeout(poll, ms)
     }
 
+    const apiBase = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080').replace(/\/$/, '')
+
     const poll = async () => {
       if (cancelled) return
       try {
         const { data } = await axios.get<SearchResultsDto>(
-          `http://localhost:8080/api/v1/search/${searchId}/results`
+          `${apiBase}/api/v1/search/${searchId}/results`
         )
 
         networkErrors = 0
@@ -913,6 +916,7 @@ export function ResultsPage() {
           setShowConfetti(true)
           setTimeout(() => setShowConfetti(false), 3500)
         } else if (data.status === 'FAILED') {
+          console.warn('Search job failed:', data.errorMessage ?? '(no message)')
           navigate('/search')
         } else {
           delay = Math.min(delay * 2, 30000)

@@ -29,8 +29,10 @@ export function SearchForm({ onSearchSubmitted }: SearchFormProps) {
     e.preventDefault();
     setError(null);
     setIsSubmitting(true);
+  
     try {
-      const response = await axios.post('http://localhost:8080/api/v1/search', formData);
+      const base = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080').replace(/\/$/, '');
+      const response = await axios.post(`${base}/api/v1/search`, formData);
       onSearchSubmitted(response.data.searchId);
     } catch (err) {
       console.error('Error submitting search:', err);

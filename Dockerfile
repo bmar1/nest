@@ -18,6 +18,9 @@ COPY --from=build /app/target/nestapp-0.0.1-SNAPSHOT.jar app.jar
 
 EXPOSE 8080
 
+# Render often has no IPv6 route; Supabase DNS may return IPv6 first → "Network unreachable".
+# JAVA_TOOL_OPTIONS still applies if the platform overrides JAVA_OPTS.
+ENV JAVA_TOOL_OPTIONS="-Djava.net.preferIPv4Stack=true"
 ENV JAVA_OPTS="-Xmx512m -Xms256m"
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

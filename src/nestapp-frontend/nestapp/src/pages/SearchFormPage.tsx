@@ -23,12 +23,12 @@ import {
   SlidersHorizontal,
   Zap,
   Clock,
-  Loader2,
   Bed,
   Bath,
 } from 'lucide-react'
 import { getSearchSubmitErrorMessage } from '@/lib/searchSubmitErrors'
 import { cn } from '@/lib/utils'
+import { SearchSubmitLoadingOverlay } from '@/components/SearchSubmitLoadingOverlay'
 
 /* ─── Types ────────────────────────────── */
 
@@ -185,10 +185,8 @@ export function SearchFormPage() {
     setIsSubmitting(true)
 
     try {
-      const response = await axios.post(
-        'http://localhost:8080/api/v1/search',
-        formData
-      )
+      const base = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080').replace(/\/$/, '')
+      const response = await axios.post(`${base}/api/v1/search`, formData)
       navigate(`/search/${response.data.searchId}/results`)
     } catch (err) {
       console.error('Error submitting search:', err)
@@ -207,26 +205,7 @@ export function SearchFormPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-cream via-cream to-sage-muted/20 dark:from-background dark:via-background dark:to-accent/20">
-      <AnimatePresence>
-        {isSubmitting && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-cream/85 backdrop-blur-sm dark:bg-background/85"
-            aria-live="polite"
-            aria-busy="true"
-          >
-            <div className="flex flex-col items-center gap-4 rounded-3xl border border-sage-muted/30 bg-white/85 px-8 py-7 shadow-xl dark:border-border dark:bg-surface/90">
-              <Loader2 className="h-12 w-12 animate-spin text-primary" aria-hidden />
-              <div className="text-center">
-                <p className="text-lg font-semibold text-foreground">Starting your search</p>
-                <p className="mt-1 text-sm text-muted-foreground">We&apos;re sending your preferences now.</p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <SearchSubmitLoadingOverlay open={isSubmitting} />
 
       {/* Header */}
       <header className="sticky top-0 z-10 border-b border-sage-muted/40 bg-cream/95 backdrop-blur supports-[backdrop-filter]:bg-cream/80 dark:border-border dark:bg-surface/95 dark:supports-[backdrop-filter]:bg-surface/80">

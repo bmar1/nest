@@ -1,5 +1,6 @@
 package com.nest.nestapp.model;
 
+import com.nest.nestapp.converter.JobStatusPgEnumConverter;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -24,7 +25,7 @@ public class ScrapingJob {
     @Column(name = "search_id", nullable = false, unique = true)
     private UUID searchId;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = JobStatusPgEnumConverter.class)
     @Column(nullable = false)
     @Builder.Default
     private JobStatus status = JobStatus.PENDING;

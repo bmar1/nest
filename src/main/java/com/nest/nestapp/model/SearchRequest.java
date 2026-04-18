@@ -1,5 +1,7 @@
 package com.nest.nestapp.model;
 
+import com.nest.nestapp.converter.JobStatusPgEnumConverter;
+import com.nest.nestapp.converter.PriorityPgEnumConverter;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -24,7 +26,7 @@ public class SearchRequest {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = PriorityPgEnumConverter.class)
     @Column(nullable = false)
     private Priority priority;
 
@@ -47,7 +49,7 @@ public class SearchRequest {
     @Column(name = "max_lease_months")
     private Integer maxLeaseMonths;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = JobStatusPgEnumConverter.class)
     @Column(nullable = false)
     @Builder.Default
     private JobStatus status = JobStatus.PENDING;

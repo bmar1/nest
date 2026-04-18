@@ -15,7 +15,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-    @Value("${cors.allowed-origins:http://localhost,http://localhost:5173,http://localhost:5174}")
+    @Value("${cors.allowed-origins:http://localhost,http://localhost:5173,http://localhost:5174,https://nest-one-eta.vercel.app/}")
     private String[] allowedOrigins;
 
     @Override

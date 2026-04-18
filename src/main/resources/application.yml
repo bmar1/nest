@@ -4,8 +4,11 @@ spring:
 
   # JDBC URL must be host:port/database only — never embed user:password in the URL.
   # Characters like # & ? in passwords are interpreted as URL syntax and break the connection string.
-  # Deploy (e.g. Render) → Supabase: if you see "Network unreachable", use Dockerfile IPv4 JVM flag
-  # and/or Supabase "Session pooler" host from the dashboard (port 5432). Restricted DB: allow Render egress IPs.
+  # Deploy (e.g. Render) → Supabase:
+  # - "Network unreachable" → IPv6/route (Dockerfile sets preferIPv4Stack) or IP allowlist on Supabase.
+  # - UnknownHostException for db.<ref>.supabase.co → host not in DNS: paste Host from Supabase
+  #   Project Settings → Database (connection string), check project is active, no typos in DB_HOST.
+  # Pooler host/port from the dashboard if you use connection pooling.
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:nest}${DB_JDBC_OPTIONS:}
     username: ${DB_USER:postgres}

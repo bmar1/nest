@@ -10,16 +10,17 @@ RUN mvn dependency:go-offline -B
 COPY src ./src
 RUN mvn clean package -DskipTests -B
 
-# Runtime stage
-FROM eclipse-temurin:21-jre-alpine
+# Runtime: glibc JRE (not Alpine). Alpine/musl can mis-resolve some DB hosts; more importantly,
+# java.net.UnknownHostException for *.supabase.co means the hostname is wrong or not in public DNS
+# (typo in DB_HOST, old project ref, or paused Supabase project) — fix env to match the dashboard.
+FROM eclipse-temurin:21-jre
 WORKDIR /app
 
 COPY --from=build /app/target/nestapp-0.0.1-SNAPSHOT.jar app.jar
 
 EXPOSE 8080
 
-# Render often has no IPv6 route; Supabase DNS may return IPv6 first → "Network unreachable".
-# JAVA_TOOL_OPTIONS still applies if the platform overrides JAVA_OPTS.
+# Prefer IPv4 when both A and AAAA exist (some PaaS lack IPv6 egress).
 ENV JAVA_TOOL_OPTIONS="-Djava.net.preferIPv4Stack=true"
 ENV JAVA_OPTS="-Xmx512m -Xms256m"
 

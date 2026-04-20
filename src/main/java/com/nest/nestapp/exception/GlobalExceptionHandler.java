@@ -10,6 +10,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import jakarta.validation.ConstraintViolationException;
@@ -59,6 +60,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoSuchElementException.class)
     public ResponseEntity<Map<String, Object>> handleNotFound(NoSuchElementException ex) {
         log.debug("Resource not found: {}", ex.getMessage());
+        return errorResponse(HttpStatus.NOT_FOUND, "The requested resource was not found");
+    }
+
+    /** Static resource not found (e.g. hitting / on the API backend). */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNoResource(NoResourceFoundException ex) {
+        log.debug("No resource found: {}", ex.getMessage());
         return errorResponse(HttpStatus.NOT_FOUND, "The requested resource was not found");
     }
 

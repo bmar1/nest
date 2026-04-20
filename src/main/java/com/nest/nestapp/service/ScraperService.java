@@ -129,6 +129,12 @@ public class ScraperService {
             List<Apartment> apartments = futures.stream()
                     .map(CompletableFuture::join)
                     .filter(apartment -> apartment != null && apartment.getPrice() != null)
+                    .peek(apartment -> {
+                        // DB has CHECK (sqft > 0); convert invalid values to NULL
+                        if (apartment.getSqft() != null && apartment.getSqft() <= 0) {
+                            apartment.setSqft(null);
+                        }
+                    })
                     .collect(Collectors.toList());
 
             log.info("{} detail fetches produced {} apartments", sourceName.get(), apartments.size());

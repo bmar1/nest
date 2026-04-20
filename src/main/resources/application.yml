@@ -10,14 +10,14 @@ spring:
   #   Project Settings → Database (connection string), check project is active, no typos in DB_HOST.
   # Pooler host/port from the dashboard if you use connection pooling.
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:nest}?stringtype=unspecified${DB_JDBC_OPTIONS:}
-    username: ${DB_USER:postgres}
-    password: ${DB_PASSWORD:postgres}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:postgres}?user=${DB_USER:postgres}&password=${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
       minimum-idle: 2
       connection-timeout: 30000
+      data-source-properties:
+        stringtype: unspecified
 
   jpa:
     hibernate:

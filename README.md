@@ -23,7 +23,7 @@
 
 Renting shouldn't mean refreshing five tabs, reconciling duplicate posts, and guessing which "great deal" is actually a fit. **Nest** is an apartment search tool built for people who want clarity: one place to search, priorities you control, and ranked results that explain *why* a listing scored the way it did.
 
-Currently live for the **Toronto** rental market — aggregating listings from **Craigslist** and **Kijiji** (soon other platforms).
+Currently live for the **Toronto** rental market — aggregating listings from **Craigslist** and **Kijiji**.
 
 <br/>
 
@@ -31,11 +31,11 @@ Currently live for the **Toronto** rental market — aggregating listings from *
 
 | | |
 |:--|:--|
-|  **Priority-driven search** | Choose what matters most — budget, space, amenities, or a balanced mix — and results re-rank to match. |
-|  **Multi-source aggregation** | Listings from Craigslist Toronto and Kijiji, merged and deduplicated automatically. |
-|  **Cached freshness** | Recent non-expired listings are reused for instant follow-up searches. |
-|  **Transparent scoring** | Every listing gets a 0–100 score with a full breakdown, so you see the tradeoffs at a glance. |
-|  **Source images** | Real listing photos from the original sources, displayed directly in the results. |
+| 🎯 **Priority-driven search** | Choose what matters most — budget, space, amenities, or a balanced mix — and results re-rank to match. |
+| 🔗 **Multi-source aggregation** | Listings from Craigslist Toronto and Kijiji, merged and deduplicated automatically. |
+| ⚡ **Cached freshness** | Recent non-expired listings are reused for instant follow-up searches. |
+| 📊 **Transparent scoring** | Every listing gets a 0–100 score with a full breakdown, so you see the tradeoffs at a glance. |
+| 🖼️ **Source images** | Real listing photos from the original sources, displayed directly in the results. |
 
 <br/>
 

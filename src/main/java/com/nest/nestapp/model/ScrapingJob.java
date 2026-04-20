@@ -26,7 +26,7 @@ public class ScrapingJob {
     private UUID searchId;
 
     @Convert(converter = JobStatusPgEnumConverter.class)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "job_status_type")
     @Builder.Default
     private JobStatus status = JobStatus.PENDING;
 

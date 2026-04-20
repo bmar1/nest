@@ -27,7 +27,7 @@ public class SearchRequest {
     private UUID id;
 
     @Convert(converter = PriorityPgEnumConverter.class)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "priority_type")
     private Priority priority;
 
     @Column(name = "max_price", nullable = false)
@@ -50,7 +50,7 @@ public class SearchRequest {
     private Integer maxLeaseMonths;
 
     @Convert(converter = JobStatusPgEnumConverter.class)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "job_status_type")
     @Builder.Default
     private JobStatus status = JobStatus.PENDING;
 

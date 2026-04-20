@@ -176,7 +176,7 @@ nestapp/
 │   │   └── service/             # Business logic & scraping
 │   ├── main/resources/
 │   │   ├── db/migration/        # Flyway SQL migrations
-│   │   └── application.yml      # Spring Boot config
+│   │   └── application.properties # Spring Boot config
 │   ├── nestapp-frontend/nestapp/
 │   │   └── src/
 │   │       ├── components/      # Shared React components

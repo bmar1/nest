@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/health")
+@RequestMapping("/")
 @RequiredArgsConstructor
 public class HealthController {
 

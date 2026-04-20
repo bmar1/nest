@@ -1,7 +1,8 @@
 package com.nest.nestapp.model;
 
-import com.nest.nestapp.converter.JobStatusPgEnumConverter;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -25,7 +26,8 @@ public class ScrapingJob {
     @Column(name = "search_id", nullable = false, unique = true)
     private UUID searchId;
 
-    @Convert(converter = JobStatusPgEnumConverter.class)
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(nullable = false, columnDefinition = "job_status_type")
     @Builder.Default
     private JobStatus status = JobStatus.PENDING;

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { getSearchSubmitErrorMessage } from '@/lib/searchSubmitErrors';
+import { getApiBaseUrl } from '@/lib/apiBaseUrl';
 
 interface SearchFormData {
   priority: 'BUDGET' | 'SPACE' | 'AMENITIES' | 'BALANCED';
@@ -31,7 +32,7 @@ export function SearchForm({ onSearchSubmitted }: SearchFormProps) {
     setIsSubmitting(true);
   
     try {
-      const base = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080').replace(/\/$/, '');
+      const base = getApiBaseUrl();
       const response = await axios.post(`${base}/api/v1/search`, formData);
       onSearchSubmitted(response.data.searchId);
     } catch (err) {

@@ -39,6 +39,7 @@ import {
   Medal,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { getApiBaseUrl } from '@/lib/apiBaseUrl'
 
 /* ─── Constants ────────────────────────── */
 
@@ -896,7 +897,7 @@ export function ResultsPage() {
       timeoutRef.current = setTimeout(poll, ms)
     }
 
-    const apiBase = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080').replace(/\/$/, '')
+    const apiBase = getApiBaseUrl()
 
     const poll = async () => {
       if (cancelled) return

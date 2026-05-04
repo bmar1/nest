@@ -27,6 +27,7 @@ import {
   Bath,
 } from 'lucide-react'
 import { getSearchSubmitErrorMessage } from '@/lib/searchSubmitErrors'
+import { getApiBaseUrl } from '@/lib/apiBaseUrl'
 import { cn } from '@/lib/utils'
 import { SearchSubmitLoadingOverlay } from '@/components/SearchSubmitLoadingOverlay'
 
@@ -185,7 +186,7 @@ export function SearchFormPage() {
     setIsSubmitting(true)
 
     try {
-      const base = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080').replace(/\/$/, '')
+      const base = getApiBaseUrl()
       const response = await axios.post(`${base}/api/v1/search`, formData)
       navigate(`/search/${response.data.searchId}/results`)
     } catch (err) {

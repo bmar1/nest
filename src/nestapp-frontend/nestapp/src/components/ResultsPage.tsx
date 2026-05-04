@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { ApartmentCard } from './ApartmentCard';
+import { getApiBaseUrl } from '@/lib/apiBaseUrl';
 
 interface Apartment {
   id: string;
@@ -32,7 +33,7 @@ export function ResultsPage({ searchId }: ResultsPageProps) {
   useEffect(() => {
     const pollResults = async () => {
       try {
-        const base = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080').replace(/\/$/, '');
+        const base = getApiBaseUrl();
         const response = await axios.get(`${base}/api/v1/search/${searchId}/results`);
         setStatus(response.data.status);
         

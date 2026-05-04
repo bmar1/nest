@@ -796,7 +796,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ─── FINAL CTA ─── No whileHover scale per Emil: only active:scale press feedback */}
+      {/* ─── FINAL CTA ─── subtle hover lift, press feedback only for scale */}
       <section className="relative z-10 overflow-hidden border-t-2 border-primary/30 bg-background py-28 sm:py-36">
         <div className="pointer-events-none absolute -top-32 left-1/2 h-[500px] w-[600px] -translate-x-1/2 rounded-full bg-golden/[0.14] blur-[120px] dark:bg-golden/[0.09]" />
         <div className="pointer-events-none absolute -bottom-10 -left-10 h-[200px] w-[200px] rounded-full bg-secondary/[0.06] blur-[80px]" />
@@ -820,13 +820,13 @@ export function LandingPage() {
             <div className="mt-10 inline-block">
               <Button
                 size="lg"
-                className="h-14 cursor-pointer rounded-full px-10 text-base shadow-lg shadow-primary/20 [transition:background-color_200ms_ease-out,transform_140ms_cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] sm:h-16 sm:px-12 sm:text-lg"
+                className="group h-14 cursor-pointer rounded-full px-10 text-base shadow-lg shadow-primary/20 [transition:background-color_200ms_ease-out,box-shadow_220ms_ease-out,transform_180ms_cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/25 active:scale-[0.97] sm:h-16 sm:px-12 sm:text-lg"
                 asChild
               >
                 <Link to="/search" className="inline-flex items-center gap-2">
                   <Search className="h-5 w-5" aria-hidden />
                   Start your free search
-                  <ChevronRight className="h-5 w-5" aria-hidden />
+                  <ChevronRight className="h-5 w-5 [transition:transform_180ms_cubic-bezier(0.23,1,0.32,1)] group-hover:translate-x-0.5" aria-hidden />
                 </Link>
               </Button>
             </div>

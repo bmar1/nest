@@ -73,9 +73,9 @@ metadata:
   name: nest-api
   namespace: nest
 spec:
+  type: LoadBalancer
   selector:
     app: nest-api
   ports:
   - port: 8080
     targetPort: 8080
-  type: ClusterIP

@@ -10,13 +10,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/")
 @RequiredArgsConstructor
 public class HealthController {
 
     private final JdbcTemplate jdbcTemplate;
 
-    @GetMapping
+    @GetMapping({"/", "/api/v1/health"})
     public Map<String, Object> health() {
         Map<String, Object> response = new HashMap<>();
         response.put("status", "UP");

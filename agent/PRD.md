@@ -1,19 +1,19 @@
 # Product Requirements Document: ApartmentFinder MVP
 
 **Project Name:** *Nest*
-**Version:** 1.1 (MVP + platform architecture spec)
+**Version:** 1.2 (MVP + platform architecture spec; Google Cloud reference)
 **Timeline:** 2 months
 
 ## 1\. Overview
 
-Nest is a web application that scrapes apartment listings from rental websites, aggregates them, and recommends the best apartments based on user-defined priorities. The MVP focuses on delivering core functionality with a scalable architecture using Kubernetes (EKS) from day one.
+Nest is a web application that scrapes apartment listings from rental websites, aggregates them, and recommends the best apartments based on user-defined priorities. The MVP focuses on delivering core functionality with a scalable architecture using **Kubernetes** from day one. The **reference cloud** stack is **Google Kubernetes Engine (GKE)**; the same manifests and patterns also run on **local** clusters (kind, k3s, Docker Desktop) without GCP.
 
 **Document scope:** Sections **4.1–4.4** and the **§5** *Scrape source task* entity describe the **target** platform: API and scraper workers in-cluster, message queue for jobs, PostgreSQL for durable state and completion tracking. The currently shipped product may still run scraping inside the API process until that split is implemented.
 
 ### Geography & deployment (locked decisions)
 
 - **Market:** **Toronto only** — no multi-city or region abstraction required in the product model for the foreseeable future; scrapers stay fixed to Toronto listings.
-- **Primary deployment (current phase):** **Local / self-hosted** on the developer’s machine — e.g. **Kubernetes** (kind, k3s, Docker Desktop, or similar) running containerized **Spring Boot API**, **RabbitMQ**, **PostgreSQL**, and scraper worker images. **No requirement** for paid cloud (EKS, RDS, etc.) to ship or learn this stack; cloud patterns remain **portable** if you move later.
+- **Primary deployment (current phase):** **Local / self-hosted** on the developer’s machine — e.g. **Kubernetes** (kind, k3s, Docker Desktop, or similar) running containerized **Spring Boot API**, **RabbitMQ**, **PostgreSQL**, and scraper worker images. **No requirement** for paid cloud to ship or learn this stack. **Target production reference:** **Google Cloud** — **GKE** for the API and workers, **Cloud SQL for PostgreSQL** (recommended), **RabbitMQ** in-cluster (e.g. Helm) or a **managed AMQP** provider, **Artifact Registry** for images, **Google Cloud Load Balancing** (Ingress/Gateway) for HTTPS, **Secret Manager** + **Workload Identity** for credentials (see §4.1a, §7). Patterns remain **portable** to other clouds (EKS, AKS, DOKS) with service swaps.
 - **Partial source failure:** If **one source succeeds** and **another fails** (task `FAILED`, timeout, or zero listings), the product **still delivers results** from whatever succeeded: all `scrape_source_tasks` become terminal, then **only the Spring Boot API** runs **ScoringService** on `apartments` for that `search_id` and returns **COMPLETED** with available listings (optional: expose per-source status in API responses for transparency).
 - **Cache / deduplication:** Immediately **after** extracting listings from a live scrape, **before** treating a row as new work for this `search_id`, check whether a non-expired row already exists for the same stable key (**`source_url`** in the Toronto-only model). If it exists, **do not re-scrape or duplicate** that listing for cache’s sake — **reuse** the cached payload (copy/link into this search per implementation) so workers stay fast and storage stays bounded.
 
@@ -88,7 +88,7 @@ Kubernetes Ingress
 Spring Boot API (Deployment, N replicas)
         │ AMQP publish (jobs)
         ▼
-Message broker (RabbitMQ in-cluster, or AWS SQS in AWS deployments)
+Message broker (RabbitMQ in-cluster, managed AMQP, or e.g. AWS SQS in AWS-only deployments)
         │ consume
         ▼
 Scraper worker Deployment (KEDA-scaled pods)
@@ -124,6 +124,16 @@ PostgreSQL (apartments, searches, scraping jobs, scrape source tasks)
 6. Worker inserts **`apartments`** rows with **`search_id`** set; marks its **`scrape_source_tasks`** row **DONE** / **FAILED**.
 7. When **all** `scrape_source_tasks` for that **`search_id`** are **terminal**, **only the API** runs **ScoringService**, persists **apartment_scores**, sets search/job **COMPLETED** if any listings exist for that `search_id`, else **FAILED** (see §4.3, §12).
 8. Client **GET /results** sees **COMPLETED** and ranked payloads.
+
+### 4.1a On-demand scoring, polling, and what “N” means (locked for MVP)
+
+**Per-source tasks, not per listing:** The API publishes **one queue message per *scraping source*** (e.g. Craigslist, Kijiji) for a given `search_id`. If the product has **2** sources, **N = 2** task rows and **2** messages — **not** one message per apartment and **not** tied to “top 20” results. The **“top 20”** in §3 is the **UI result cap after scoring**, not a job count.
+
+**Client polling:** After **POST /search** returns **202**, the client **repeatedly** calls **GET /search/{id}/results** (e.g. every 2–5s with backoff) until the response is **200** with `COMPLETED` or `FAILED`, or the client times out. Early polls return **202** with `PROCESSING` while **any** `scrape_source_tasks` for that `search_id` is still non-terminal. There is **no** requirement to “call once per source” — the same endpoint is polled **many times** until the search is done.
+
+**On-demand scoring (implementation default):** When a **GET /results** runs, the API **reads PostgreSQL** (task rows + `apartments` for that `search_id`). If **all** `scrape_source_tasks` are **terminal** but `ScoringService` has **not** yet run for this search, the API runs **scoring in that request** (after acquiring a **single-writer** guard — e.g. DB conditional update or lock — so only one API replica scores). If tasks are not all terminal, return **202 PROCESSING** without scoring. This avoids a separate scheduler or “completion event” in MVP; **Postgres** remains authoritative.
+
+**Google Cloud (wiring only):** GKE, Cloud SQL, and RabbitMQ/ingress **do not** change this flow — only where containers and the DB run.
 
 ### 4.2 Scraper workers and PostgreSQL
 
@@ -192,13 +202,15 @@ Optional: **Redis** for shared rate limits across API replicas only; **completio
 | Layer          | Technology |
 | -------------- | ---------- |
 | Frontend       | React + TypeScript |
-| API            | Spring Boot (Java 21), Kubernetes Deployment |
-| Message Queue  | **RabbitMQ** (AMQP, in-cluster or managed) or **AWS SQS** on AWS |
-| Workers        | Spring Boot or JVM-light consumer pods; **KEDA** optional for queue-driven scaling |
-| Orchestration  | Kubernetes (DOKS, EKS, kind, etc.) |
-| Database       | PostgreSQL (managed RDS/Neon or in-cluster) |
+| API            | Spring Boot (Java 21), Kubernetes `Deployment` (e.g. GKE) |
+| Message Queue  | **RabbitMQ** (AMQP — in GKE via StatefulSet/Helm, or managed AMQP). **Alt:** **AWS SQS** on AWS only; **Cloud Pub/Sub** on GCP is a *different* protocol (not drop-in for AMQP). |
+| Workers        | Consumer pods; **KEDA** optional for queue-depth scaling (supported on GKE) |
+| Orchestration  | **Reference:** **GKE** (Autopilot or Standard). **Local:** kind, k3s, Docker Desktop. **Also:** EKS, DOKS, AKS. |
+| Database       | **Reference:** **Cloud SQL for PostgreSQL** (GKE: private IP or Cloud SQL Auth Proxy). **Local / dev:** in-cluster Postgres or container. |
+| Container images | **Reference:** **Artifact Registry** (`*.pkg.dev/...`) + CI push; alt: Docker Hub, GHCR |
+| Secrets / IAM  | **Reference:** **Google Secret Manager** + **GKE Workload Identity** (avoid long-lived cloud keys in pods) + Kubernetes `Secret` for non-GCP material |
 | Scraping       | Jsoup; Selenium if needed |
-| Hosting        | **Primary:** local self-hosted Kubernetes + Docker on developer PC; cloud (AWS, DO, etc.) optional later |
+| Hosting        | **Primary dev:** local Kubernetes + Docker. **Reference prod:** **Google Cloud (GKE + Cloud SQL + Artifact Registry + HTTPS load balancing)**. |
 
 ## 8\. 2-Month Phasing
 
@@ -209,7 +221,7 @@ Optional: **Redis** for shared rate limits across API replicas only; **completio
 - PostgreSQL schema and ORM
 - Mock scraper with hardcoded data
 - Matching algorithm implementation
-- Deploy to EKS (2 nodes)
+- Deploy to **GKE** (e.g. 2+ nodes or Autopilot) or local cluster
 
 **Weeks 4-5 (Real Scraping):**
 
@@ -245,7 +257,7 @@ Optional: **Redis** for shared rate limits across API replicas only; **completio
 
 ✅ End-to-end flow works in < 3 minutes
 ✅ 10-30+ apartments scraped and ranked per search
-✅ EKS auto-scaling (2-5 pods)
+✅ GKE (or local k8s) **HPA** / **KEDA**-style scaling for API and workers (e.g. 2–5 API replicas as needed)
 ✅ Zero data loss on failures
 ✅ API documented
 ✅ Responsive frontend
@@ -260,7 +272,7 @@ JWT via API Gateway (optional / future):
 - JWT includes rate limiting identifier to prevent abuse
 - All subsequent API calls require valid JWT in Authorization header
 
-**MVP / current:** Per-IP rate limiting and validation on Spring Boot; CORS and secrets via Kubernetes Secrets.
+**MVP / current:** Per-IP rate limiting and validation on Spring Boot; CORS; Kubernetes `Secret`s; on GCP, prefer **Secret Manager** + **Workload Identity** for database and broker credentials (see §7).
 
 ## 12\. Error Handling & Resilience
 
@@ -279,7 +291,7 @@ JWT via API Gateway (optional / future):
 
 - Max 3 retries per message with exponential backoff (30s, 60s, 120s)
 - After max failures → **Dead Letter Queue (DLQ)**
-- DLQ monitored via CloudWatch / Prometheus alarm
+- DLQ monitored via **Cloud Monitoring** (GCP) / **CloudWatch** (AWS) / **Prometheus** (in-cluster) alerts
 
 **Scraping best practices:**
 
@@ -294,14 +306,24 @@ JWT via API Gateway (optional / future):
 
 - Application logs: INFO level for successful operations, ERROR for failures
 - Metrics: Scrape success rate, average response time, queue depth, scrape-source task completion
-- Alarms: DLQ message count >5, API error rate >10%, EKS pod failures
+- Alarms: DLQ message count >5, API error rate >10%, **GKE** pod / node failures (or equivalent on other clouds)
 
 **Health checks:**
 
 - `GET /api/v1/health` — Returns API status + database connectivity
 - Kubernetes liveness/readiness probes configured
 
-## 14\. AWS Free Tier Constraints (if using AWS)
+## 14\. Cloud cost & tier notes (reference)
+
+**Google Cloud (GKE + Cloud SQL — typical gotchas):**
+
+- **GKE:** Standard charges for the **control plane** and **node pools** (Autopilot bills per pod/vCPU; compare calculators). Set **budget alerts** in Cloud Billing.
+- **Cloud SQL:** Instance size + storage + high availability; use **private IP** to GKE in the same project/VPC; **smallest** dev tier for learning.
+- **Egress / LB:** **Global HTTP(S) Load Balancing** and inter-zone traffic can add up; keep images in **Artifact Registry** same **region** as GKE to reduce transfer.
+- **Observability:** **Cloud Logging / Cloud Monitoring** — default retention and custom metrics have pricing; **OpenTelemetry** export is optional.
+- **Always:** project-level **budget** + **alert** (e.g. email at threshold).
+
+**AWS Free Tier Constraints (if using AWS instead):**
 
 - EKS: 2 t3.small nodes max (monitor costs, EKS control plane NOT free)
 - RDS: db.t3.micro PostgreSQL (20GB storage)

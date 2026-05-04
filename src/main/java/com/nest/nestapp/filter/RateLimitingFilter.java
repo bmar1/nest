@@ -10,6 +10,7 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -31,8 +32,14 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public class RateLimitingFilter implements Filter {
 
-    private static final int SEARCH_LIMIT_PER_MINUTE = 5;
-    private static final int RESULTS_LIMIT_PER_MINUTE = 60;
+    @Value("${rate-limit.search.per-minute:5}")
+    private int searchLimitPerMinute;
+
+    @Value("${rate-limit.results.per-minute:60}")
+    private int resultsLimitPerMinute;
+
+    @Value("${rate-limit.retry-after-seconds:60}")
+    private int retryAfterSeconds;
 
     private final ConcurrentHashMap<String, Bucket> searchBuckets = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Bucket> resultsBuckets = new ConcurrentHashMap<>();
@@ -80,29 +87,29 @@ public class RateLimitingFilter implements Filter {
         log.debug("Rate limit buckets cleared");
     }
 
-    private static Bucket buildSearchBucket() {
+    private Bucket buildSearchBucket() {
         return Bucket.builder()
                 .addLimit(Bandwidth.builder()
-                        .capacity(SEARCH_LIMIT_PER_MINUTE)
-                        .refillGreedy(SEARCH_LIMIT_PER_MINUTE, Duration.ofMinutes(1))
+                        .capacity(searchLimitPerMinute)
+                        .refillGreedy(searchLimitPerMinute, Duration.ofMinutes(1))
                         .build())
                 .build();
     }
 
-    private static Bucket buildResultsBucket() {
+    private Bucket buildResultsBucket() {
         return Bucket.builder()
                 .addLimit(Bandwidth.builder()
-                        .capacity(RESULTS_LIMIT_PER_MINUTE)
-                        .refillGreedy(RESULTS_LIMIT_PER_MINUTE, Duration.ofMinutes(1))
+                        .capacity(resultsLimitPerMinute)
+                        .refillGreedy(resultsLimitPerMinute, Duration.ofMinutes(1))
                         .build())
                 .build();
     }
 
-    private static void sendRateLimitResponse(HttpServletResponse response, String message)
+    private void sendRateLimitResponse(HttpServletResponse response, String message)
             throws IOException {
         response.setStatus(429);
         response.setContentType("application/json");
-        response.setHeader("Retry-After", "60");
+        response.setHeader("Retry-After", Integer.toString(retryAfterSeconds));
         response.getWriter().write(
                 "{\"error\":\"" + message + "\",\"status\":429}");
     }

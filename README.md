@@ -60,7 +60,7 @@ React Frontend  →  Spring Boot REST API  →  PostgreSQL
 | **Frontend** | React 19, TypeScript, Vite |
 | **Database** | PostgreSQL 16 (Supabase) |
 | **Scraping** | Jsoup |
-| **Deployment** | Docker, Docker Compose, Kubernetes (DOKS) |
+| **Deployment** | Docker, Docker Compose, Kubernetes — **GKE** + **Cloud SQL** + **Artifact Registry** (reference; see `agent/PRD.md` §7) or local / DOKS ([`k8s/README.md`](k8s/README.md)) |
 
 <br/>
 
@@ -140,9 +140,9 @@ Frontend available at `http://localhost:5173`
 
 ## Deployment
 
-### Kubernetes (DigitalOcean)
+### Kubernetes (Google GKE, DigitalOcean, or local)
 
-See [`k8s/README.md`](k8s/README.md) for full instructions.
+The PRD’s **reference** production stack is **Google Kubernetes Engine (GKE)** with **Cloud SQL** and **Artifact Registry**; the same YAML works on other clusters. See [`k8s/README.md`](k8s/README.md) for **GKE** (Option A) and **DigitalOcean** (Option B), image push, and optional managed Postgres.
 
 ```bash
 # Build and push images

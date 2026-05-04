@@ -18,6 +18,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -126,7 +127,7 @@ public class SearchService {
     public SearchResultsDto getResults(UUID searchId) {
         // Get scraping job status
         ScrapingJob job = scrapingJobRepository.findBySearchId(searchId)
-                .orElseThrow(() -> new RuntimeException("Search not found"));
+                .orElseThrow(() -> new NoSuchElementException("Search not found"));
         
         if (job.getStatus() == JobStatus.COMPLETED) {
             // Get top 20 scored apartments

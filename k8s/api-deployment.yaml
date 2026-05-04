@@ -37,7 +37,7 @@ spec:
     spec:
       containers:
       - name: nest-api
-        image: YOUR_DOCKERHUB_USERNAME/nest-api:latest
+        image: northamerica-northeast1-docker.pkg.dev/nest-495223/nest/nest-api:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8080

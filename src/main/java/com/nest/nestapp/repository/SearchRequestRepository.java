@@ -1,6 +1,7 @@
 package com.nest.nestapp.repository;
 
 import com.nest.nestapp.model.SearchRequest;
+import com.nest.nestapp.model.JobStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -12,6 +13,10 @@ import java.util.UUID;
 
 @Repository
 public interface SearchRequestRepository extends JpaRepository<SearchRequest, UUID> {
+
+    @Modifying
+    @Query("UPDATE SearchRequest r SET r.status = :status WHERE r.id = :searchId")
+    int updateStatus(@Param("searchId") UUID searchId, @Param("status") JobStatus status);
 
     @Modifying
     @Query("DELETE FROM SearchRequest r WHERE r.createdAt < :cutoff")

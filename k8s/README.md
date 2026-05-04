@@ -88,7 +88,8 @@ kubectl apply -f k8s/namespace.yaml
 # kubectl apply -f k8s/postgres-deployment.yaml   # omit if using Cloud SQL
 kubectl apply -f k8s/api-deployment.yaml
 kubectl apply -f k8s/frontend-deployment.yaml
-# kubectl apply -f k8s/worker-deployment.yaml      # template only; replicas=0 by default
+# kubectl apply -f k8s/rabbitmq-deployment.yaml    # required before scrape.mode=queue
+# kubectl apply -f k8s/worker-deployment.yaml      # safe; replicas=0 by default
 # kubectl apply -f k8s/ingress.yaml              # when DNS + GKE Ingress are ready
 ```
 
@@ -153,7 +154,8 @@ kubectl apply -f k8s/namespace.yaml
 kubectl apply -f k8s/postgres-deployment.yaml
 kubectl apply -f k8s/api-deployment.yaml
 kubectl apply -f k8s/frontend-deployment.yaml
-# kubectl apply -f k8s/worker-deployment.yaml      # template only; replicas=0 by default
+# kubectl apply -f k8s/rabbitmq-deployment.yaml    # required before scrape.mode=queue
+# kubectl apply -f k8s/worker-deployment.yaml      # safe; replicas=0 by default
 # Optional: kubectl apply -f k8s/ingress.yaml
 ```
 
@@ -188,11 +190,22 @@ On **GKE**, prefer **HPA** and (for workers) **KEDA** on queue depth per `agent/
 Worker deployment template:
 
 ```bash
-# Apply template (safe; starts at 0 replicas)
+# Apply RabbitMQ first, then the worker template (safe; starts at 0 replicas)
+kubectl apply -f k8s/rabbitmq-deployment.yaml
 kubectl apply -f k8s/worker-deployment.yaml
 
-# After implementing worker-mode code and RabbitMQ wiring:
+# Enable queue publishing in api-config only after RabbitMQ is healthy:
+kubectl patch configmap api-config -n nest --type merge -p '{"data":{"SCRAPE_MODE":"queue"}}'
+kubectl rollout restart deployment nest-api -n nest
+
+# Start workers:
 kubectl scale deployment nest-worker --replicas=2 -n nest
+```
+
+Optional worker autoscaling requires KEDA installed in the cluster:
+
+```bash
+kubectl apply -f k8s/worker-keda.yaml
 ```
 
 The worker detach implementation sequence is documented in

@@ -3,6 +3,7 @@ package com.nest.nestapp.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nest.nestapp.model.Apartment;
+import com.nest.nestapp.model.ScrapeSource;
 import com.nest.nestapp.model.SearchRequest;
 import com.nest.nestapp.repository.ApartmentRepository;
 import lombok.RequiredArgsConstructor;
@@ -64,6 +65,27 @@ public class ScraperService {
 
         log.info(
                 "Collected {} live listings and {} cached listings; {} remain after dedupe for search {}",
+                liveListings.size(),
+                cachedListings.size(),
+                mergedListings.size(),
+                searchRequest.getId()
+        );
+        return mergedListings;
+    }
+
+    public List<Apartment> scrapeSource(SearchRequest searchRequest, ScrapeSource source) {
+        log.info("Starting {} scrape for search ID: {}", source, searchRequest.getId());
+
+        List<Apartment> liveListings = switch (source) {
+            case CRAIGSLIST -> scrapeCraigslistListings(searchRequest);
+            case KIJIJI -> scrapeKijijiListings(searchRequest);
+        };
+        List<Apartment> cachedListings = loadCachedListings(searchRequest, source);
+        List<Apartment> mergedListings = mergeDedupedListings(searchRequest, liveListings, cachedListings);
+
+        log.info(
+                "{} collected {} live listings and {} cached listings; {} remain after dedupe for search {}",
+                source,
                 liveListings.size(),
                 cachedListings.size(),
                 mergedListings.size(),
@@ -258,6 +280,12 @@ public class ScraperService {
 
         log.info("Loaded {} non-expired cached listings for search {}", cachedListings.size(), searchRequest.getId());
         return cachedListings;
+    }
+
+    private List<Apartment> loadCachedListings(SearchRequest searchRequest, ScrapeSource source) {
+        return loadCachedListings(searchRequest).stream()
+                .filter(apartment -> source.name().equalsIgnoreCase(apartment.getSourceSite()))
+                .collect(Collectors.toList());
     }
 
     private Apartment cloneForSearch(Apartment apartment, UUID searchId) {

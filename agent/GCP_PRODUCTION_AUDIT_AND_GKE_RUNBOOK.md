@@ -133,22 +133,22 @@ This section describes a practical path to deploy:
 
 ### Phase 2 - Detach `ScraperService` into worker
 
+**Implemented shape:** keep Phase 1 safe by default with `SCRAPE_MODE=inline`. Queue mode is enabled only after `rabbitmq-deployment.yaml` is healthy and worker pods are ready.
+
 1. **Introduce queue contracts**
-   - Define scrape job message schema (JSON):
-     - `search_id`
-     - `source`
-     - `max_price`, `min_sqft`, other relevant filters
-     - optional retry metadata/correlation id
+   - `ScrapeJobMessage` carries `searchId`, `source`, search filters, and `correlationId`.
+   - API publishes one message per enabled source when `SCRAPE_MODE=queue`.
 
 2. **Add durable per-source orchestration table**
-   - Add `scrape_source_tasks` table:
-     - `search_id`, `source`, `status`, `attempts`, `error_message`, timestamps.
-   - API creates one row per source at search creation time.
+   - `scrape_source_tasks` tracks `search_id`, `source`, `status`, `attempts`, `error_message`, timestamps.
+   - Status lifecycle: `PENDING -> PROCESSING -> DONE | FAILED`.
+   - Completion remains authoritative in PostgreSQL.
 
 3. **Refactor API behavior**
    - `POST /search`:
      - create search + scraping_job + source task rows,
-     - publish one RabbitMQ message per source,
+     - in `inline` mode: preserve existing async API scraping fallback,
+     - in `queue` mode: publish one RabbitMQ message per source,
      - return 202.
    - `GET /results`:
      - check whether all `scrape_source_tasks` for the search are terminal,
@@ -166,14 +166,32 @@ This section describes a practical path to deploy:
 
 5. **Scale workers**
    - Start with fixed replica count.
-   - Add KEDA ScaledObject on RabbitMQ queue depth for elastic scaling to demand.
+   - Add `k8s/worker-keda.yaml` after KEDA is installed to scale on RabbitMQ queue depth.
+
+**Queue-mode rollout commands (after image is pushed):**
+
+```bash
+kubectl apply -f k8s/rabbitmq-deployment.yaml
+kubectl apply -f k8s/worker-deployment.yaml
+kubectl patch configmap api-config -n nest --type merge -p '{"data":{"SCRAPE_MODE":"queue"}}'
+kubectl rollout restart deployment nest-api -n nest
+kubectl scale deployment nest-worker --replicas=2 -n nest
+```
+
+**Rollback:**
+
+```bash
+kubectl patch configmap api-config -n nest --type merge -p '{"data":{"SCRAPE_MODE":"inline"}}'
+kubectl rollout restart deployment nest-api -n nest
+kubectl scale deployment nest-worker --replicas=0 -n nest
+```
 
 ### Phase 3 - RabbitMQ on GKE
 
 Choose one:
 
 - **Option A (faster managed ops):** hosted AMQP provider.
-- **Option B (in-cluster):** RabbitMQ via Helm chart/operator.
+- **Option B (in-cluster):** `k8s/rabbitmq-deployment.yaml` for MVP, then Helm/operator for stronger HA later.
 
 Recommended in-cluster setup steps:
 

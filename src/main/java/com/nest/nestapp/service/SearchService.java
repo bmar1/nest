@@ -1,10 +1,13 @@
 package com.nest.nestapp.service;
 
 import com.nest.nestapp.dto.*;
+import com.nest.nestapp.messaging.ScrapeJobMessage;
+import com.nest.nestapp.messaging.ScrapeJobPublisher;
 import com.nest.nestapp.model.*;
 import com.nest.nestapp.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -33,7 +36,13 @@ public class SearchService {
     private final ApartmentScoreRepository apartmentScoreRepository;
     private final ScraperService scraperService;
     private final ScoringService scoringService;
+    private final ListingFilterService listingFilterService;
+    private final ScrapeSourceTaskService scrapeSourceTaskService;
+    private final ScrapeJobPublisher scrapeJobPublisher;
     private final ApplicationContext applicationContext;
+
+    @Value("${scrape.mode:inline}")
+    private String scrapeMode;
 
     @Transactional
     public SearchResponseDto createSearch(SearchRequestDto dto) {
@@ -57,9 +66,10 @@ public class SearchService {
                 .status(JobStatus.PENDING)
                 .build();
         scrapingJobRepository.save(job);
+        scrapeSourceTaskService.createTasks(searchRequest.getId());
         
         log.info("Created search request with ID: {}", searchRequest.getId());
-        scheduleSearchProcessing(searchRequest.getId());
+        scheduleSearchProcessing(searchRequest);
         
         return SearchResponseDto.builder()
                 .searchId(searchRequest.getId())
@@ -85,9 +95,11 @@ public class SearchService {
 
             request.setStatus(JobStatus.PROCESSING);
             searchRequestRepository.save(request);
+            scrapeSourceTaskService.enabledSources()
+                    .forEach(source -> scrapeSourceTaskService.markProcessing(searchId, source));
 
             List<Apartment> apartments = scraperService.scrapeApartments(request);
-            apartments = applySpecificNeeds(apartments, request);
+            apartments = listingFilterService.applySpecificNeeds(apartments, request);
 
             job.setTotalAttempted(apartments.size());
 
@@ -108,6 +120,8 @@ public class SearchService {
 
             request.setStatus(JobStatus.COMPLETED);
             searchRequestRepository.save(request);
+            scrapeSourceTaskService.enabledSources()
+                    .forEach(source -> scrapeSourceTaskService.markDone(searchId, source));
 
             log.info("Completed search {}", searchId);
         } catch (Exception e) {
@@ -120,14 +134,29 @@ public class SearchService {
 
             request.setStatus(JobStatus.FAILED);
             searchRequestRepository.save(request);
+            scrapeSourceTaskService.enabledSources()
+                    .forEach(source -> scrapeSourceTaskService.markFailed(searchId, source, e.getMessage()));
         }
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public SearchResultsDto getResults(UUID searchId) {
         // Get scraping job status
         ScrapingJob job = scrapingJobRepository.findBySearchId(searchId)
                 .orElseThrow(() -> new NoSuchElementException("Search not found"));
+
+        if (scrapeSourceTaskService.hasTasks(searchId)
+                && job.getStatus() != JobStatus.COMPLETED
+                && job.getStatus() != JobStatus.FAILED) {
+            if (!scrapeSourceTaskService.allTasksTerminal(searchId)) {
+                return SearchResultsDto.builder()
+                        .searchId(searchId)
+                        .status(JobStatus.PROCESSING)
+                        .estimatedWaitSeconds(45)
+                        .build();
+            }
+            job = finalizeQueuedSearch(searchId);
+        }
         
         if (job.getStatus() == JobStatus.COMPLETED) {
             // Get top 20 scored apartments
@@ -204,6 +233,42 @@ public class SearchService {
         }
     }
 
+    private ScrapingJob finalizeQueuedSearch(UUID searchId) {
+        ScrapingJob job = scrapingJobRepository.findBySearchIdForUpdate(searchId)
+                .orElseThrow(() -> new NoSuchElementException("Search not found"));
+
+        if (job.getStatus() == JobStatus.COMPLETED || job.getStatus() == JobStatus.FAILED) {
+            return job;
+        }
+        if (!scrapeSourceTaskService.allTasksTerminal(searchId)) {
+            return job;
+        }
+
+        SearchRequest request = searchRequestRepository.findById(searchId)
+                .orElseThrow(() -> new NoSuchElementException("Search request not found"));
+        List<Apartment> apartments = apartmentRepository.findBySearchId(searchId);
+
+        if (!apartments.isEmpty()) {
+            if (!apartmentScoreRepository.existsBySearchId(searchId)) {
+                List<ApartmentScore> scores = buildScores(apartments, request);
+                apartmentScoreRepository.saveAll(scores);
+            }
+            job.setStatus(JobStatus.COMPLETED);
+            job.setTotalSuccessful(Math.max(job.getTotalSuccessful(), apartments.size()));
+            request.setStatus(JobStatus.COMPLETED);
+        } else {
+            job.setStatus(JobStatus.FAILED);
+            job.setTotalSuccessful(0);
+            job.setErrorMessage("No usable listings found after all scrape source tasks completed");
+            request.setStatus(JobStatus.FAILED);
+        }
+
+        job.setCompletedAt(OffsetDateTime.now());
+        scrapingJobRepository.save(job);
+        searchRequestRepository.save(request);
+        return job;
+    }
+
     private List<ApartmentScore> buildScores(List<Apartment> apartments, SearchRequest request) {
         int minPrice = apartments.stream()
                 .map(Apartment::getPrice)
@@ -231,44 +296,47 @@ public class SearchService {
                 .collect(Collectors.toList());
     }
 
-    private List<Apartment> applySpecificNeeds(List<Apartment> apartments, SearchRequest request) {
-        if (apartments.isEmpty()) {
-            return apartments;
-        }
-
-        boolean hasBedroomNeed = request.getDesiredBedrooms() != null;
-        boolean hasBathroomNeed = request.getDesiredBathrooms() != null;
-        if (!hasBedroomNeed && !hasBathroomNeed) {
-            return apartments;
-        }
-
-        List<Apartment> filtered = apartments.stream()
-                .filter(apartment -> request.getDesiredBedrooms() == null
-                        || (apartment.getBedrooms() != null && apartment.getBedrooms() >= request.getDesiredBedrooms()))
-                .filter(apartment -> request.getDesiredBathrooms() == null
-                        || (apartment.getBathrooms() != null && apartment.getBathrooms() >= request.getDesiredBathrooms()))
-                .collect(Collectors.toList());
-
-        if (filtered.isEmpty()) {
-            log.info("No listings matched bedroom/bathroom requirements for search {}, falling back to all listings", request.getId());
-            return apartments;
-        }
-
-        return filtered;
-    }
-
-    private void scheduleSearchProcessing(UUID searchId) {
+    private void scheduleSearchProcessing(SearchRequest searchRequest) {
         SearchService proxy = applicationContext.getBean(SearchService.class);
         if (!TransactionSynchronizationManager.isActualTransactionActive()) {
-            proxy.processSearchAsync(searchId);
+            dispatchSearch(searchRequest, proxy);
             return;
         }
 
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                proxy.processSearchAsync(searchId);
+                dispatchSearch(searchRequest, proxy);
             }
         });
+    }
+
+    private void dispatchSearch(SearchRequest searchRequest, SearchService proxy) {
+        if ("queue".equalsIgnoreCase(scrapeMode)) {
+            publishSourceJobs(searchRequest);
+            return;
+        }
+
+        proxy.processSearchAsync(searchRequest.getId());
+    }
+
+    private void publishSourceJobs(SearchRequest searchRequest) {
+        scrapeSourceTaskService.enabledSources()
+                .forEach(source -> scrapeJobPublisher.publish(toMessage(searchRequest, source)));
+    }
+
+    private ScrapeJobMessage toMessage(SearchRequest searchRequest, ScrapeSource source) {
+        return new ScrapeJobMessage(
+                searchRequest.getId(),
+                source,
+                searchRequest.getPriority(),
+                searchRequest.getMaxPrice(),
+                searchRequest.getMinSqft(),
+                searchRequest.getDesiredBedrooms(),
+                searchRequest.getDesiredBathrooms(),
+                searchRequest.getDesiredAmenities(),
+                searchRequest.getMaxLeaseMonths(),
+                UUID.randomUUID()
+        );
     }
 }

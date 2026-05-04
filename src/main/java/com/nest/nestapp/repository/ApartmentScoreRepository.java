@@ -16,6 +16,8 @@ public interface ApartmentScoreRepository extends JpaRepository<ApartmentScore, 
     @Query("SELECT s FROM ApartmentScore s WHERE s.searchId = :searchId ORDER BY s.finalScore DESC")
     List<ApartmentScore> findBySearchIdOrderByFinalScoreDesc(@Param("searchId") UUID searchId);
 
+    boolean existsBySearchId(UUID searchId);
+
     List<ApartmentScore> findTop20BySearchIdOrderByFinalScoreDesc(UUID searchId);
 
     @Modifying

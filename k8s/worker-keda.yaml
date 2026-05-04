@@ -1,0 +1,19 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: nest-worker-rabbitmq-scaler
+  namespace: nest
+spec:
+  scaleTargetRef:
+    name: nest-worker
+  minReplicaCount: 0
+  maxReplicaCount: 10
+  pollingInterval: 15
+  cooldownPeriod: 120
+  triggers:
+  - type: rabbitmq
+    metadata:
+      queueName: scrape.jobs
+      mode: QueueLength
+      value: "5"
+      hostFromEnv: RABBITMQ_AMQP_URL

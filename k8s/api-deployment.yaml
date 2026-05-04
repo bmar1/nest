@@ -8,6 +8,14 @@ data:
   DB_PORT: "5432"
   DB_NAME: nest
   DB_USER: postgres
+  SCRAPE_MODE: inline
+  SPRING_RABBITMQ_HOST: rabbitmq
+  SPRING_RABBITMQ_PORT: "5672"
+  RABBITMQ_SCRAPE_EXCHANGE: scrape.exchange
+  RABBITMQ_SCRAPE_QUEUE: scrape.jobs
+  RABBITMQ_SCRAPE_ROUTING_KEY: scrape.job
+  RABBITMQ_SCRAPE_DLX: scrape.dlx
+  RABBITMQ_SCRAPE_DLQ: scrape.jobs.dlq
 
 ---
 apiVersion: v1
@@ -46,6 +54,9 @@ spec:
             name: api-config
         - secretRef:
             name: api-secret
+        - secretRef:
+            name: rabbitmq-secret
+            optional: true
         livenessProbe:
           httpGet:
             path: /api/v1/health

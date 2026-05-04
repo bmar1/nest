@@ -4,28 +4,16 @@ metadata:
   name: worker-config
   namespace: nest
 data:
-  # Template values for the future detached worker process.
-  # Keep replicas at 0 until worker-mode code exists.
-  WORKER_ENABLED: "false"
-  RABBITMQ_HOST: rabbitmq
-  RABBITMQ_PORT: "5672"
-  RABBITMQ_VHOST: "/"
-  RABBITMQ_QUEUE: scrape.jobs
-  RABBITMQ_EXCHANGE: scrape.exchange
-  RABBITMQ_ROUTING_KEY: scrape.job
+  SCRAPE_MODE: queue
+  SPRING_RABBITMQ_HOST: rabbitmq
+  SPRING_RABBITMQ_PORT: "5672"
+  RABBITMQ_SCRAPE_QUEUE: scrape.jobs
+  RABBITMQ_SCRAPE_EXCHANGE: scrape.exchange
+  RABBITMQ_SCRAPE_ROUTING_KEY: scrape.job
+  RABBITMQ_SCRAPE_DLX: scrape.dlx
+  RABBITMQ_SCRAPE_DLQ: scrape.jobs.dlq
   WORKER_CONCURRENCY: "4"
   WORKER_PREFETCH: "8"
-
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: worker-secret
-  namespace: nest
-type: Opaque
-stringData:
-  RABBITMQ_USERNAME: guest
-  RABBITMQ_PASSWORD: guest
 
 ---
 apiVersion: apps/v1
@@ -34,7 +22,7 @@ metadata:
   name: nest-worker
   namespace: nest
 spec:
-  # Safe default: do not run until worker-only code path is implemented.
+  # Start at 0; scale after RabbitMQ is healthy and API is in SCRAPE_MODE=queue.
   replicas: 0
   revisionHistoryLimit: 5
   minReadySeconds: 5
@@ -54,8 +42,8 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
       - name: nest-worker
-        # Can reuse the same image as API initially; switch to dedicated worker image later.
-        image: YOUR_DOCKERHUB_USERNAME/nest-api:latest
+        # Reuses the API image; worker behavior is selected via SPRING_PROFILES_ACTIVE=worker.
+        image: northamerica-northeast1-docker.pkg.dev/nest-495223/nest/nest-api:latest
         imagePullPolicy: Always
         env:
         - name: SPRING_PROFILES_ACTIVE
@@ -68,7 +56,7 @@ spec:
         - configMapRef:
             name: worker-config
         - secretRef:
-            name: worker-secret
+            name: rabbitmq-secret
         resources:
           requests:
             memory: "256Mi"

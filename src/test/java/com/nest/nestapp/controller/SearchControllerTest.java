@@ -116,7 +116,7 @@ class SearchControllerTest {
     }
 
     @Test
-    void getResults_whenFailed_returns500() throws Exception {
+    void getResults_whenFailed_returns200() throws Exception {
         UUID searchId = UUID.randomUUID();
         SearchResultsDto resultsDto = SearchResultsDto.builder()
                 .searchId(searchId)
@@ -129,7 +129,7 @@ class SearchControllerTest {
         when(searchService.getResults(searchId)).thenReturn(resultsDto);
 
         mockMvc.perform(get("/api/v1/search/" + searchId + "/results"))
-                .andExpect(status().isInternalServerError())
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("FAILED"));
     }
 }

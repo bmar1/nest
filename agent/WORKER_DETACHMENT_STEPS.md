@@ -75,7 +75,7 @@ Do not remove existing scraping flow yet; keep a feature flag fallback.
 
 Add worker-specific startup path controlled by profile:
 
-- profile: `worker`
+- profile: `worker\
 - API profile keeps web endpoints enabled.
 - Worker profile runs queue listener and disables API controllers if desired.
 

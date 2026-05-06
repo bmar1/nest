@@ -6,7 +6,7 @@ metadata:
 data:
   DB_HOST: postgres
   DB_PORT: "5432"
-  DB_NAME: nest
+  DB_NAME: postgres
   DB_USER: postgres
   SCRAPE_MODE: inline
   SPRING_RABBITMQ_HOST: rabbitmq
@@ -25,7 +25,7 @@ metadata:
   namespace: nest
 type: Opaque
 stringData:
-  DB_PASSWORD: postgres
+  DB_PASSWORD: q^mCeFxvm~hop(TL
 
 ---
 apiVersion: apps/v1

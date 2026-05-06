@@ -24,6 +24,7 @@ public class ScrapeSourceTaskService {
 
     private final ScrapeSourceTaskRepository scrapeSourceTaskRepository;
 
+    /** Sources we enqueue / track; extend {@link ScrapeSource} and filtering here to toggle sites without schema changes. */
     public List<ScrapeSource> enabledSources() {
         return Arrays.asList(ScrapeSource.values());
     }
@@ -48,6 +49,9 @@ public class ScrapeSourceTaskService {
         return scrapeSourceTaskRepository.countBySearchId(searchId) > 0;
     }
 
+    /**
+     * True when every expected task row exists and none are PENDING/PROCESSING — used by GET /results to trigger scoring.
+     */
     public boolean allTasksTerminal(UUID searchId) {
         long expectedTaskCount = enabledSources().size();
         long actualTaskCount = scrapeSourceTaskRepository.countBySearchId(searchId);

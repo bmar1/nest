@@ -14,6 +14,10 @@ import org.springframework.context.annotation.Configuration;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Declares scrape exchange, main queue, DLQ, and JSON converter when {@code scrape.mode=queue}.
+ * Connection factory comes from Spring Boot ({@code spring.rabbitmq.*} / env).
+ */
 @Configuration
 @ConditionalOnProperty(name = "scrape.mode", havingValue = "queue")
 public class RabbitConfig {

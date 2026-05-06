@@ -25,6 +25,16 @@ import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * Search lifecycle:
+ * <ul>
+ *   <li><b>POST /search</b> — persists {@code SearchRequest}, aggregate {@code ScrapingJob}, and one {@code ScrapeSourceTask}
+ *       per enabled source; then either publishes Rabbit messages ({@code scrape.mode=queue}) or runs {@link #processSearchAsync}
+ *       ({@code inline}).</li>
+ *   <li><b>GET /results</b> — reads DB only; in queue mode waits until every source task is terminal, then {@link #finalizeQueuedSearch}
+ *       runs scoring once before returning completed results.</li>
+ * </ul>
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -66,9 +76,11 @@ public class SearchService {
                 .status(JobStatus.PENDING)
                 .build();
         scrapingJobRepository.save(job);
+        // One DB row per source (e.g. Craigslist, Kijiji); workers or inline scrape flip rows to DONE/FAILED.
         scrapeSourceTaskService.createTasks(searchRequest.getId());
-        
+
         log.info("Created search request with ID: {}", searchRequest.getId());
+        // Must run after commit so publish/async scrape never sees half-written tasks.
         scheduleSearchProcessing(searchRequest);
         
         return SearchResponseDto.builder()
@@ -79,6 +91,10 @@ public class SearchService {
                 .build();
     }
 
+    /**
+     * Inline ({@code scrape.mode=inline}) path: all sources scraped inside the API process, then scored here.
+     * Not used when {@code scrape.mode=queue} (workers scrape per message; API scores on demand in {@link #finalizeQueuedSearch}).
+     */
     @Async
     @Transactional
     public void processSearchAsync(UUID searchId) {
@@ -139,9 +155,12 @@ public class SearchService {
         }
     }
 
+    /**
+     * Polling endpoint: never touches RabbitMQ. In queue mode, completion is inferred when every {@code scrape_source_tasks}
+     * row is DONE or FAILED; then we transition the aggregate job and write scores (once) if needed.
+     */
     @Transactional
     public SearchResultsDto getResults(UUID searchId) {
-        // Get scraping job status
         ScrapingJob job = scrapingJobRepository.findBySearchId(searchId)
                 .orElseThrow(() -> new NoSuchElementException("Search not found"));
 
@@ -149,12 +168,14 @@ public class SearchService {
                 && job.getStatus() != JobStatus.COMPLETED
                 && job.getStatus() != JobStatus.FAILED) {
             if (!scrapeSourceTaskService.allTasksTerminal(searchId)) {
+                // Workers still processing one or more sources — tell client to poll again.
                 return SearchResultsDto.builder()
                         .searchId(searchId)
                         .status(JobStatus.PROCESSING)
                         .estimatedWaitSeconds(45)
                         .build();
             }
+            // All per-source tasks finished: promote aggregate job + score listings (guarded inside).
             job = finalizeQueuedSearch(searchId);
         }
         
@@ -233,6 +254,10 @@ public class SearchService {
         }
     }
 
+    /**
+     * Queue-mode only scoring gate: called from {@link #getResults} after workers finished all sources.
+     * Uses a row lock on {@code ScrapingJob} so concurrent GETs from multiple API replicas only score once.
+     */
     private ScrapingJob finalizeQueuedSearch(UUID searchId) {
         ScrapingJob job = scrapingJobRepository.findBySearchIdForUpdate(searchId)
                 .orElseThrow(() -> new NoSuchElementException("Search not found"));
@@ -249,6 +274,7 @@ public class SearchService {
         List<Apartment> apartments = apartmentRepository.findBySearchId(searchId);
 
         if (!apartments.isEmpty()) {
+            // Idempotent: another replica may have scored under the same lock ordering.
             if (!apartmentScoreRepository.existsBySearchId(searchId)) {
                 List<ApartmentScore> scores = buildScores(apartments, request);
                 apartmentScoreRepository.saveAll(scores);
@@ -296,6 +322,10 @@ public class SearchService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Defer {@link #dispatchSearch} until the surrounding transaction commits (createSearch).
+     * Avoids publishing to Rabbit or starting {@link #processSearchAsync} before tasks + job rows are visible to workers.
+     */
     private void scheduleSearchProcessing(SearchRequest searchRequest) {
         SearchService proxy = applicationContext.getBean(SearchService.class);
         if (!TransactionSynchronizationManager.isActualTransactionActive()) {
@@ -311,20 +341,28 @@ public class SearchService {
         });
     }
 
+    /**
+     * Feature flag: queue mode enqueues one message per source; inline mode scrapes in-process via {@code @Async}.
+     */
     private void dispatchSearch(SearchRequest searchRequest, SearchService proxy) {
         if ("queue".equalsIgnoreCase(scrapeMode)) {
             publishSourceJobs(searchRequest);
             return;
         }
 
+        // Spring proxy required so @Async and transaction boundaries apply to processSearchAsync.
         proxy.processSearchAsync(searchRequest.getId());
     }
 
+    /**
+     * One AMQP message per enabled source; workers compete on the shared queue and each handles a single source.
+     */
     private void publishSourceJobs(SearchRequest searchRequest) {
         scrapeSourceTaskService.enabledSources()
                 .forEach(source -> scrapeJobPublisher.publish(toMessage(searchRequest, source)));
     }
 
+    /** Snapshot of search criteria + correlation id carried with the job (worker has no HTTP session). */
     private ScrapeJobMessage toMessage(SearchRequest searchRequest, ScrapeSource source) {
         return new ScrapeJobMessage(
                 searchRequest.getId(),

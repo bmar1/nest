@@ -7,6 +7,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
+/**
+ * Active when {@code scrape.mode=queue}; sends JSON to the configured exchange/routing key (see {@code RabbitConfig}).
+ */
 @Component
 @ConditionalOnProperty(name = "scrape.mode", havingValue = "queue")
 @RequiredArgsConstructor
@@ -23,6 +26,7 @@ public class RabbitScrapeJobPublisher implements ScrapeJobPublisher {
 
     @Override
     public void publish(ScrapeJobMessage message) {
+        // Broker topology is declared in RabbitConfig; template uses Spring Boot auto-configured connection.
         rabbitTemplate.convertAndSend(exchange, routingKey, message);
         log.info("Published scrape job for search {} source {}", message.searchId(), message.source());
     }

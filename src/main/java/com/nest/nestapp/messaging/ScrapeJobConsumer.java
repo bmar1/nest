@@ -20,6 +20,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.OffsetDateTime;
 import java.util.List;
 
+/**
+ * Worker-only Rabbit consumer ({@code SPRING_PROFILES_ACTIVE=worker}, {@code scrape.mode=queue}).
+ * Each message = one source for one search; updates DB task rows and listing counts; API scores on GET when all tasks terminal.
+ */
 @Component
 @Profile("worker")
 @ConditionalOnProperty(name = "scrape.mode", havingValue = "queue")
@@ -43,6 +47,7 @@ public class ScrapeJobConsumer {
             SearchRequest request = searchRequestRepository.findById(message.searchId())
                     .orElseThrow(() -> new IllegalArgumentException("Search request not found: " + message.searchId()));
 
+            // Align aggregate job + request status when any worker picks up work (may race across sources).
             searchRequestRepository.updateStatus(message.searchId(), JobStatus.PROCESSING);
             scrapingJobRepository.updateStatus(message.searchId(), JobStatus.PROCESSING, OffsetDateTime.now(), null);
             scrapeSourceTaskService.markProcessing(message.searchId(), message.source());

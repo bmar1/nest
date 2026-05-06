@@ -5,11 +5,11 @@ metadata:
   namespace: nest
 type: Opaque
 stringData:
-  RABBITMQ_DEFAULT_USER: nest
-  RABBITMQ_DEFAULT_PASS: change-me
-  SPRING_RABBITMQ_USERNAME: nest
-  SPRING_RABBITMQ_PASSWORD: change-me
-  RABBITMQ_AMQP_URL: amqp://nest:change-me@rabbitmq.nest.svc.cluster.local:5672/
+  RABBITMQ_DEFAULT_USER: ynwscean
+  RABBITMQ_DEFAULT_PASS: h4iBJPsjHXeVlZvPJs-GCGt8Bsa7AZ4O
+  SPRING_RABBITMQ_USERNAME: ynwscean
+  SPRING_RABBITMQ_PASSWORD: h4iBJPsjHXeVlZvPJs-GCGt8Bsa7AZ4O
+  RABBITMQ_AMQP_URL: amqps://ynwscean:h4iBJPsjHXeVlZvPJs-GCGt8Bsa7AZ4O@codfish.rmq.cloudamqp.com/ynwscean
 
 ---
 apiVersion: v1

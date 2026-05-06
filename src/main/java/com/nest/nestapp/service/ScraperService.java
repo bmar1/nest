@@ -53,6 +53,9 @@ public class ScraperService {
 
     private final ApartmentRepository apartmentRepository;
 
+    /**
+     * Inline mode: scrape both sources in one call, merge/dedupe (legacy monolithic path).
+     */
     public List<Apartment> scrapeApartments(SearchRequest searchRequest) {
         log.info("Starting scrape for search ID: {}", searchRequest.getId());
 
@@ -73,6 +76,9 @@ public class ScraperService {
         return mergedListings;
     }
 
+    /**
+     * Queue mode: one listing site per invocation (message-driven); merge with cached rows for this search+source only.
+     */
     public List<Apartment> scrapeSource(SearchRequest searchRequest, ScrapeSource source) {
         log.info("Starting {} scrape for search ID: {}", source, searchRequest.getId());
 

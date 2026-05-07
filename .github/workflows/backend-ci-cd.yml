@@ -1,0 +1,173 @@
+# Backend: test (all PRs + main), build & push to Artifact Registry (main only), optional GKE rollout.
+#
+# ── Authentication: Workload Identity Federation (no JSON keys) ──────────
+# Use this when org policy blocks service account keys (iam.disableServiceAccountKeyCreation).
+#
+# GitHub Variables (Settings → Secrets and variables → Actions → Variables):
+#   GCP_PROJECT_ID
+#   GCP_REGION
+#   ARTIFACT_REPOSITORY
+#   IMAGE_NAME
+#   GCP_GITHUB_ACTIONS_SA
+#     Full email of the deploy SA, e.g. github-actions-nest@nest-495223.iam.gserviceaccount.com
+#   GCP_WORKLOAD_IDENTITY_PROVIDER
+#     Full provider resource name, e.g.
+#     projects/123456789012/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+#     (get PROJECT_NUMBER via: gcloud projects describe PROJECT_ID --format='value(projectNumber)')
+#
+# Optional GKE deploy (same variables as before):
+#   GKE_CLUSTER_NAME, GKE_CLUSTER_LOCATION, K8S_NAMESPACE, K8S_DEPLOYMENT, K8S_CONTAINER
+#
+# ── One-time GCP setup (Cloud Shell or local gcloud) ───────────────────────
+# Replace PROJECT_ID, GITHUB_ORG_OR_USER, REPO_NAME. PROJECT_NUMBER from describe.
+#
+# 1) APIs
+#    gcloud services enable iamcredentials.googleapis.com sts.googleapis.com iam.googleapis.com container.googleapis.com artifactregistry.googleapis.com --project=PROJECT_ID
+#
+# 2) Pool + OIDC provider for GitHub Actions
+#    gcloud iam workload-identity-pools create github-pool \
+#      --project=PROJECT_ID --location=global --display-name="GitHub Actions"
+#
+#    gcloud iam workload-identity-pools providers create-oidc github-provider \
+#      --project=PROJECT_ID --location=global --workload-identity-pool=github-pool \
+#      --display-name="GitHub provider" \
+#      --issuer-uri="https://token.actions.githubusercontent.com" \
+#      --attribute-mapping="google.subject=assertion.sub,attribute.actor=assertion.actor,attribute.repository=assertion.repository,attribute.repository_owner=assertion.repository_owner"
+#
+# 3) Service account GitHub will impersonate (create once)
+#    gcloud iam service-accounts create github-actions-nest --project=PROJECT_ID --display-name="GitHub Actions"
+#
+# 4) Grant SA roles for push + deploy (project-level example; narrow if you prefer)
+#    SA=github-actions-nest@PROJECT_ID.iam.gserviceaccount.com
+#    gcloud projects add-iam-policy-binding PROJECT_ID --member="serviceAccount:${SA}" --role="roles/artifactregistry.writer"
+#    gcloud projects add-iam-policy-binding PROJECT_ID --member="serviceAccount:${SA}" --role="roles/container.developer"
+#
+# 5) Allow ONLY your repo to impersonate that SA (replace PROJECT_NUMBER, POOL_ID= github-pool, PROVIDER_ID= github-provider)
+#    gcloud iam service-accounts add-iam-policy-binding "${SA}" \
+#      --project=PROJECT_ID \
+#      --role="roles/iam.workloadIdentityUser" \
+#      --member="principalSet://iam.googleapis.com/projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/github-pool/attribute.repository/GITHUB_ORG_OR_USER/REPO_NAME"
+#
+#    For all repos under a GitHub org (broader):
+#    --member="principalSet://iam.googleapis.com/projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/github-pool/attribute.repository_owner/GITHUB_ORG_OR_USER"
+#
+# 6) Copy provider resource name for GitHub variable GCP_WORKLOAD_IDENTITY_PROVIDER:
+#    gcloud iam workload-identity-pools providers describe github-provider \
+#      --project=PROJECT_ID --location=global --workload-identity-pool=github-pool \
+#      --format='value(name)'
+#
+# Image pushed:
+#   {region}-docker.pkg.dev/{project}/{ARTIFACT_REPOSITORY}/{IMAGE_NAME}:{github.sha}
+#   {region}-docker.pkg.dev/{project}/{ARTIFACT_REPOSITORY}/{IMAGE_NAME}:latest
+# ───────────────────────────────────────────────────────────────────────────
+
+name: Backend CI / CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: backend-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  JVM_VERSION: "21"
+
+jobs:
+  test:
+    name: Test (Maven)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JVM_VERSION }}
+          cache: maven
+
+      - name: Run unit tests
+        run: mvn -B test
+
+  build-and-push:
+    name: Build & push image
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Auth to Google Cloud (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_GITHUB_ACTIONS_SA }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker "${{ vars.GCP_REGION }}-docker.pkg.dev" -q
+
+      - name: Build and push
+        env:
+          REG_HOST: ${{ vars.GCP_REGION }}-docker.pkg.dev
+          PROJECT: ${{ vars.GCP_PROJECT_ID }}
+          REPO: ${{ vars.ARTIFACT_REPOSITORY }}
+          IMAGE: ${{ vars.IMAGE_NAME }}
+        run: |
+          set -eux
+          TAG_SHA="${REG_HOST}/${PROJECT}/${REPO}/${IMAGE}:${GITHUB_SHA}"
+          TAG_LATEST="${REG_HOST}/${PROJECT}/${REPO}/${IMAGE}:latest"
+          docker build -t "${TAG_SHA}" -t "${TAG_LATEST}" .
+          docker push "${TAG_SHA}"
+          docker push "${TAG_LATEST}"
+
+  deploy-gke:
+    name: Rollout on GKE (optional)
+    needs: build-and-push
+    if: |
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      vars.GKE_CLUSTER_NAME != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Auth to Google Cloud (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_GITHUB_ACTIONS_SA }}
+
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ vars.GKE_CLUSTER_NAME }}
+          location: ${{ vars.GKE_CLUSTER_LOCATION }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Set image and wait for rollout
+        run: |
+          set -eux
+          NS="${{ vars.K8S_NAMESPACE }}"
+          NS="${NS:-nest}"
+          DEPLOY="${{ vars.K8S_DEPLOYMENT }}"
+          DEPLOY="${DEPLOY:-nest-api}"
+          CONTAINER="${{ vars.K8S_CONTAINER }}"
+          CONTAINER="${CONTAINER:-nest-api}"
+          IMAGE="${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REPOSITORY }}/${{ vars.IMAGE_NAME }}:${GITHUB_SHA}"
+          kubectl set image "deployment/${DEPLOY}" "${CONTAINER}=${IMAGE}" -n "${NS}"
+          kubectl rollout status "deployment/${DEPLOY}" -n "${NS}" --timeout=5m

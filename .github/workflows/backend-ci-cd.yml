@@ -78,7 +78,7 @@ jobs:
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
       vars.GKE_CLUSTER_NAME != ''
-    runs-on: self-hosted
+    runs-on: [self-hosted, gcp, gke-deploy]
     permissions:
       contents: read
       id-token: write

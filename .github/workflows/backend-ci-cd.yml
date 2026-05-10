@@ -71,41 +71,4 @@ jobs:
           docker push "${TAG_SHA}"
           docker push "${TAG_LATEST}"
 
-  deploy-gke:
-    name: Rollout on GKE (optional)
-    needs: build-and-push
-    if: |
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/main' &&
-      vars.GKE_CLUSTER_NAME != ''
-    runs-on: [self-hosted, gcp, gke-deploy]
-    permissions:
-      contents: read
-      id-token: write
 
-    steps:
-      - name: Auth to Google Cloud (WIF)
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ vars.GCP_GITHUB_ACTIONS_SA }}
-
-      - name: Get GKE credentials
-        uses: google-github-actions/get-gke-credentials@v2
-        with:
-          cluster_name: ${{ vars.GKE_CLUSTER_NAME }}
-          location: ${{ vars.GKE_CLUSTER_LOCATION }}
-          project_id: ${{ vars.GCP_PROJECT_ID }}
-
-      - name: Set image and wait for rollout
-        run: |
-          set -eux
-          NS="${{ vars.K8S_NAMESPACE }}"
-          NS="${NS:-nest}"
-          DEPLOY="${{ vars.K8S_DEPLOYMENT }}"
-          DEPLOY="${DEPLOY:-nest-api}"
-          CONTAINER="${{ vars.K8S_CONTAINER }}"
-          CONTAINER="${CONTAINER:-nest-api}"
-          IMAGE="${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REPOSITORY }}/${{ vars.IMAGE_NAME }}:${GITHUB_SHA}"
-          kubectl set image "deployment/${DEPLOY}" "${CONTAINER}=${IMAGE}" -n "${NS}"
-          kubectl rollout status "deployment/${DEPLOY}" -n "${NS}" --timeout=5m

@@ -40,6 +40,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getApiBaseUrl } from '@/lib/apiBaseUrl'
+import { useAuth } from '@/components/AuthProvider'
 
 /* ─── Constants ────────────────────────── */
 
@@ -872,6 +873,7 @@ export function ResultsPage() {
   const { searchId } = useParams<{ searchId: string }>()
   const navigate = useNavigate()
   const shouldReduce = useReducedMotion()
+  const { idToken, isAuthenticated } = useAuth()
 
   const [status, setStatus] = useState<JobStatus>('PENDING')
   const [apartments, setApartments] = useState<Apartment[]>([])
@@ -884,6 +886,10 @@ export function ResultsPage() {
 
   useEffect(() => {
     if (!searchId) {
+      navigate('/search')
+      return
+    }
+    if (!isAuthenticated || !idToken) {
       navigate('/search')
       return
     }
@@ -903,7 +909,8 @@ export function ResultsPage() {
       if (cancelled) return
       try {
         const { data } = await axios.get<SearchResultsDto>(
-          `${apiBase}/api/v1/search/${searchId}/results`
+          `${apiBase}/api/v1/search/${searchId}/results`,
+          { headers: { Authorization: `Bearer ${idToken}` } }
         )
 
         networkErrors = 0
@@ -964,7 +971,7 @@ export function ResultsPage() {
       cancelled = true
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
     }
-  }, [searchId, navigate])
+  }, [idToken, isAuthenticated, navigate, searchId])
 
   /* ── Loading ── */
   if (status !== 'COMPLETED') {

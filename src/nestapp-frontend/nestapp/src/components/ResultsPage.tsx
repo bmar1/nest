@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { ApartmentCard } from './ApartmentCard';
 import { getApiBaseUrl } from '@/lib/apiBaseUrl';
+import { useAuth } from '@/components/AuthProvider';
 
 interface Apartment {
   id: string;
@@ -26,15 +27,23 @@ interface ResultsPageProps {
 }
 
 export function ResultsPage({ searchId }: ResultsPageProps) {
+  const { idToken, isAuthenticated } = useAuth();
   const [status, setStatus] = useState<string>('PENDING');
   const [apartments, setApartments] = useState<Apartment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const pollResults = async () => {
+      if (!isAuthenticated || !idToken) {
+        setLoading(false);
+        return;
+      }
+
       try {
         const base = getApiBaseUrl();
-        const response = await axios.get(`${base}/api/v1/search/${searchId}/results`);
+        const response = await axios.get(`${base}/api/v1/search/${searchId}/results`, {
+          headers: { Authorization: `Bearer ${idToken}` },
+        });
         setStatus(response.data.status);
         
         if (response.data.status === 'COMPLETED') {
@@ -52,7 +61,7 @@ export function ResultsPage({ searchId }: ResultsPageProps) {
     };
 
     pollResults();
-  }, [searchId]);
+  }, [idToken, isAuthenticated, searchId]);
 
   if (loading) {
     return (

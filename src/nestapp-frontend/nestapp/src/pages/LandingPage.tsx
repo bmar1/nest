@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { AuthButton } from '@/components/AuthButton'
 import {
   Home, ChevronRight, Search, Zap, Sparkles, Shield,
   CheckCircle2, Quote, Clock, Layers, BarChart3, Eye,
@@ -267,6 +268,7 @@ function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
               <a href="#how-it-works" onClick={onClose} className="cursor-pointer rounded-xl px-4 py-3 text-base font-medium text-foreground [transition:background-color_150ms_ease-out] hover:bg-muted">How It Works</a>
               <a href="#testimonials" onClick={onClose} className="cursor-pointer rounded-xl px-4 py-3 text-base font-medium text-foreground [transition:background-color_150ms_ease-out] hover:bg-muted">Testimonials</a>
               <hr className="border-border" />
+              <AuthButton className="w-full rounded-xl border-border bg-background text-foreground hover:bg-muted" />
               <Button size="lg" asChild className="w-full">
                 <Link to="/search" onClick={onClose}>
                   Start search
@@ -330,6 +332,7 @@ export function LandingPage() {
             {[['#problem', 'The Problem'], ['#features', 'Features'], ['#how-it-works', 'How It Works']].map(([href, label]) => (
               <a key={href} href={href} className="cursor-pointer text-sm font-medium text-white/70 [transition:color_200ms_ease-out] hover:text-white">{label}</a>
             ))}
+            <AuthButton className="rounded-full border-white/30 bg-white/10 text-white hover:bg-white/20" />
             <ThemeToggle />
             <Button size="sm" className="rounded-full" asChild>
               <Link to="/search">Start search</Link>
@@ -372,6 +375,7 @@ export function LandingPage() {
                   </a>
                 ))}
               </div>
+              <AuthButton className="rounded-full" />
               <ThemeToggle />
               <Button size="sm" className="rounded-full" asChild>
                 <Link to="/search">

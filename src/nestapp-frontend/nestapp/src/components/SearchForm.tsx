@@ -2,6 +2,8 @@ import { useState } from 'react';
 import axios from 'axios';
 import { getSearchSubmitErrorMessage } from '@/lib/searchSubmitErrors';
 import { getApiBaseUrl } from '@/lib/apiBaseUrl';
+import { useAuth } from '@/components/AuthProvider';
+import { LoginModal } from '@/components/LoginModal';
 
 interface SearchFormData {
   priority: 'BUDGET' | 'SPACE' | 'AMENITIES' | 'BALANCED';
@@ -16,6 +18,7 @@ interface SearchFormProps {
 }
 
 export function SearchForm({ onSearchSubmitted }: SearchFormProps) {
+  const { isAuthenticated, idToken } = useAuth();
   const [formData, setFormData] = useState<SearchFormData>({
     priority: 'BALANCED',
     maxPrice: 2500,
@@ -25,15 +28,25 @@ export function SearchForm({ onSearchSubmitted }: SearchFormProps) {
   });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (!isAuthenticated) {
+      setLoginOpen(true);
+      setError('Please sign in with Google before starting a search.');
+      return;
+    }
+
     setIsSubmitting(true);
   
     try {
       const base = getApiBaseUrl();
-      const response = await axios.post(`${base}/api/v1/search`, formData);
+      const response = await axios.post(`${base}/api/v1/search`, formData, {
+        headers: idToken ? { Authorization: `Bearer ${idToken}` } : undefined,
+      });
       onSearchSubmitted(response.data.searchId);
     } catch (err) {
       console.error('Error submitting search:', err);
@@ -45,6 +58,7 @@ export function SearchForm({ onSearchSubmitted }: SearchFormProps) {
 
   return (
     <div className="max-w-2xl mx-auto p-6 bg-white dark:bg-card rounded-lg shadow-md border border-border">
+      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
       <h2 className="text-2xl font-bold mb-6 text-foreground">Find Your Perfect Apartment</h2>
       
       <form onSubmit={handleSubmit} className="space-y-4">

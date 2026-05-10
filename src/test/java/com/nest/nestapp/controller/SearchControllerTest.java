@@ -11,7 +11,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.ArrayList;
@@ -25,6 +27,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(SearchController.class)
+@TestPropertySource(properties = "google.oauth.client-id=test-google-client")
 class SearchControllerTest {
 
     @Autowired
@@ -36,6 +39,7 @@ class SearchControllerTest {
     private SearchService searchService;
 
     @Test
+    @WithMockUser
     void createSearch_withValidRequest_returns202() throws Exception {
         SearchRequestDto requestDto = SearchRequestDto.builder()
                 .priority(Priority.BUDGET)
@@ -65,6 +69,7 @@ class SearchControllerTest {
     }
 
     @Test
+    @WithMockUser
     void createSearch_withInvalidRequest_returns400() throws Exception {
         SearchRequestDto invalidRequest = SearchRequestDto.builder()
                 .priority(Priority.BUDGET)
@@ -79,6 +84,7 @@ class SearchControllerTest {
     }
 
     @Test
+    @WithMockUser
     void getResults_whenCompleted_returns200() throws Exception {
         UUID searchId = UUID.randomUUID();
         SearchResultsDto resultsDto = SearchResultsDto.builder()
@@ -100,6 +106,7 @@ class SearchControllerTest {
     }
 
     @Test
+    @WithMockUser
     void getResults_whenProcessing_returns202() throws Exception {
         UUID searchId = UUID.randomUUID();
         SearchResultsDto resultsDto = SearchResultsDto.builder()
@@ -116,6 +123,7 @@ class SearchControllerTest {
     }
 
     @Test
+    @WithMockUser
     void getResults_whenFailed_returns200() throws Exception {
         UUID searchId = UUID.randomUUID();
         SearchResultsDto resultsDto = SearchResultsDto.builder()

@@ -30,6 +30,8 @@ import { getSearchSubmitErrorMessage } from '@/lib/searchSubmitErrors'
 import { getApiBaseUrl } from '@/lib/apiBaseUrl'
 import { cn } from '@/lib/utils'
 import { SearchSubmitLoadingOverlay } from '@/components/SearchSubmitLoadingOverlay'
+import { useAuth } from '@/components/AuthProvider'
+import { LoginModal } from '@/components/LoginModal'
 
 /* ─── Types ────────────────────────────── */
 
@@ -149,6 +151,7 @@ const priceStops = [1000, 1500, 1800, 2000, 2500, 3000, 3500, 4000, 5000]
 export function SearchFormPage() {
   const navigate = useNavigate()
   const shouldReduce = useReducedMotion()
+  const { isAuthenticated, idToken } = useAuth()
   const [formData, setFormData] = useState<SearchFormData>({
     priority: 'BALANCED',
     maxPrice: 2500,
@@ -161,6 +164,7 @@ export function SearchFormPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showFineTune, setShowFineTune] = useState(false)
+  const [loginOpen, setLoginOpen] = useState(false)
 
   const toggleAmenity = (id: string) => {
     setFormData((prev) => ({
@@ -183,11 +187,20 @@ export function SearchFormPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+
+    if (!isAuthenticated) {
+      setLoginOpen(true)
+      setError('Please sign in with Google before starting a search.')
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
       const base = getApiBaseUrl()
-      const response = await axios.post(`${base}/api/v1/search`, formData)
+      const response = await axios.post(`${base}/api/v1/search`, formData, {
+        headers: idToken ? { Authorization: `Bearer ${idToken}` } : undefined,
+      })
       navigate(`/search/${response.data.searchId}/results`)
     } catch (err) {
       console.error('Error submitting search:', err)
@@ -207,6 +220,12 @@ export function SearchFormPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-cream via-cream to-sage-muted/20 dark:from-background dark:via-background dark:to-accent/20">
       <SearchSubmitLoadingOverlay open={isSubmitting} />
+      <LoginModal
+        open={loginOpen}
+        onClose={() => setLoginOpen(false)}
+        title="Sign in before searching"
+        description="Search jobs use backend scraper capacity, so Nest requires a Google account before submitting."
+      />
 
       {/* Header */}
       <header className="sticky top-0 z-10 border-b border-sage-muted/40 bg-cream/95 backdrop-blur supports-[backdrop-filter]:bg-cream/80 dark:border-border dark:bg-surface/95 dark:supports-[backdrop-filter]:bg-surface/80">
@@ -661,9 +680,9 @@ export function SearchFormPage() {
                 Results in ~2 min
               </span>
               <span className="text-sage-muted">·</span>
-              <span>100% free</span>
+              <span>Google login required</span>
               <span className="text-sage-muted">·</span>
-              <span>No signup</span>
+              <span>100% free</span>
             </div>
             <Button
               type="submit"
@@ -679,7 +698,7 @@ export function SearchFormPage() {
               ) : (
                 <>
                   <Search className="mr-2 h-5 w-5" aria-hidden />
-                  Find my nest
+                  {isAuthenticated ? 'Find my nest' : 'Sign in to search'}
                 </>
               )}
             </Button>

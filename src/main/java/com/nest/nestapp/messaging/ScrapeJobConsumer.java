@@ -23,6 +23,10 @@ import java.util.List;
 /**
  * Worker-only Rabbit consumer ({@code SPRING_PROFILES_ACTIVE=worker}, {@code scrape.mode=queue}).
  * Each message = one source for one search; updates DB task rows and listing counts; API scores on GET when all tasks terminal.
+ * <p>
+ * <b>No broker retries:</b> failures are recorded with {@link ScrapeSourceTaskService#markFailed} and the message is acked.
+ * The listener container uses {@code defaultRequeueRejected=false}, so unexpected errors are not redelivered to the worker
+ * (they may be routed per queue DLX policy for operations visibility only — not application-level retries).
  */
 @Component
 @Profile("worker")
@@ -76,6 +80,7 @@ public class ScrapeJobConsumer {
             log.error("Worker failed scrape job search={} source={}", message.searchId(), message.source(), e);
             scrapeSourceTaskService.markFailed(message.searchId(), message.source(), e.getMessage());
             scrapingJobRepository.incrementCounts(message.searchId(), 0, 0, 1);
+            // Do not rethrow — message is acked; no Rabbit redelivery (see RabbitConfig defaultRequeueRejected).
         }
     }
 }

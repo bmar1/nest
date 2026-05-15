@@ -1,0 +1,10 @@
+# Worker pods: verify Rabbit connectivity before marking the pod ready.
+management:
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState, db, rabbit
+  health:
+    rabbit:
+      enabled: true

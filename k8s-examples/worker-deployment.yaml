@@ -1,0 +1,83 @@
+# Example only — replace placeholders; do not put real credentials in Git.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nest-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nest-worker
+  template:
+    metadata:
+      labels:
+        app: nest-worker
+    spec:
+      containers:
+
+        - name: nest-worker
+
+          # Use the digest-equivalent SHA tag produced by CI (not :latest).
+
+          image: REGION-docker.pkg.dev/PROJECT_ID/REPO_NAME/IMAGE_NAME:REPLACE_WITH_GIT_SHA
+
+          ports:
+
+            - containerPort: 8080
+
+          env:
+
+            - name: SPRING_PROFILES_ACTIVE
+
+              value: worker,gcp
+
+            - name: scrape.mode
+
+              value: queue
+
+            # Example DB/Rabbit/Google settings must come from Secrets — omitted here.
+
+          livenessProbe:
+
+            httpGet:
+
+              path: /actuator/health/liveness
+
+              port: 8080
+
+            initialDelaySeconds: 90
+
+            periodSeconds: 15
+
+            timeoutSeconds: 5
+
+            failureThreshold: 3
+
+          readinessProbe:
+
+            httpGet:
+
+              path: /actuator/health/readiness
+
+              port: 8080
+
+            initialDelaySeconds: 30
+
+            periodSeconds: 10
+
+            timeoutSeconds: 5
+
+            failureThreshold: 6
+
+          startupProbe:
+
+            httpGet:
+
+              path: /actuator/health/readiness
+
+              port: 8080
+
+            failureThreshold: 30
+
+            periodSeconds: 10
+

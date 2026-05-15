@@ -1,0 +1,21 @@
+# GKE: Google Cloud Managed Service for Prometheus (GMP) — scrape app metrics.
+# Requires the GMP operator / PodMonitoring CRD in the cluster.
+# Adjust selector.matchLabels to match your Deployment pod template labels.
+#
+# After metrics flow, create alerts in Cloud Monitoring (Metrics Explorer → MQL or PromQL)
+# e.g. high queue: nest_rabbit_scrape_queue_messages_ready > 100
+#      high CPU (container): use kubernetes.io/container/cpu/limit_utilization
+#
+apiVersion: monitoring.googleapis.com/v1
+kind: PodMonitoring
+metadata:
+  name: nest-pods
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: nest-api
+  endpoints:
+    - port: 8080
+      path: /actuator/prometheus
+      interval: 30s

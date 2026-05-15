@@ -1,0 +1,27 @@
+# Opt-in profile for GKE / Cloud Logging + Managed Prometheus.
+# Activate with: SPRING_PROFILES_ACTIVE=gcp or append ,gcp (e.g. worker,gcp).
+
+nest:
+  logging:
+    http-requests: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    enable:
+      jvm: true
+      process: true
+      system: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+
+logging:
+  level:
+    root: INFO
+    com.nest.nestapp: INFO

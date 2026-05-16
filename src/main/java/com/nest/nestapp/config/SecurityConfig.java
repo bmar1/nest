@@ -16,6 +16,10 @@ import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 @Configuration
 public class SecurityConfig {
 
@@ -40,9 +44,12 @@ public class SecurityConfig {
     }
 
     @Bean
-    JwtDecoder jwtDecoder(@Value("${google.oauth.client-id}") String googleClientId) {
-        if (googleClientId == null || googleClientId.isBlank()) {
-            throw new IllegalStateException("google.oauth.client-id must be configured for Google ID token validation");
+    JwtDecoder jwtDecoder(
+            @Value("${google.oauth.client-ids:${google.oauth.client-id:}}") String googleClientIds
+    ) {
+        Set<String> allowedAudiences = parseAllowedAudiences(googleClientIds);
+        if (allowedAudiences.isEmpty()) {
+            throw new IllegalStateException("google.oauth.client-id or google.oauth.client-ids must be configured for Google ID token validation");
         }
 
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withIssuerLocation(GOOGLE_ISSUER).build();
@@ -56,7 +63,7 @@ public class SecurityConfig {
             return OAuth2TokenValidatorResult.failure(error);
         };
         OAuth2TokenValidator<Jwt> audienceValidator = token -> {
-            if (token.getAudience().contains(googleClientId)) {
+            if (hasAllowedAudience(token, allowedAudiences)) {
                 return OAuth2TokenValidatorResult.success();
             }
             OAuth2Error error = new OAuth2Error(
@@ -68,5 +75,19 @@ public class SecurityConfig {
         };
         decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(timestampValidator, issuerValidator, audienceValidator));
         return decoder;
+    }
+
+    static Set<String> parseAllowedAudiences(String googleClientIds) {
+        if (googleClientIds == null || googleClientIds.isBlank()) {
+            return Set.of();
+        }
+        return Arrays.stream(googleClientIds.split(","))
+                .map(String::trim)
+                .filter(id -> !id.isBlank())
+                .collect(Collectors.toUnmodifiableSet());
+    }
+
+    static boolean hasAllowedAudience(Jwt token, Set<String> allowedAudiences) {
+        return token.getAudience().stream().anyMatch(allowedAudiences::contains);
     }
 }

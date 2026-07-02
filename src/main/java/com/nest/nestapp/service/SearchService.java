@@ -5,6 +5,7 @@ import com.nest.nestapp.messaging.ScrapeJobMessage;
 import com.nest.nestapp.messaging.ScrapeJobPublisher;
 import com.nest.nestapp.model.*;
 import com.nest.nestapp.repository.*;
+import com.nest.nestapp.util.ClientErrorMessages;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -55,9 +56,10 @@ public class SearchService {
     private String scrapeMode;
 
     @Transactional
-    public SearchResponseDto createSearch(SearchRequestDto dto) {
+    public SearchResponseDto createSearch(SearchRequestDto dto, String userId) {
         // Create and save search request
         SearchRequest searchRequest = SearchRequest.builder()
+                .userId(userId)
                 .priority(dto.getPriority())
                 .maxPrice(dto.getMaxPrice())
                 .minSqft(dto.getMinSqft())
@@ -160,7 +162,9 @@ public class SearchService {
      * row is DONE or FAILED; then we transition the aggregate job and write scores (once) if needed.
      */
     @Transactional
-    public SearchResultsDto getResults(UUID searchId) {
+    public SearchResultsDto getResults(UUID searchId, String userId) {
+        assertSearchOwnedByUser(searchId, userId);
+
         ScrapingJob job = scrapingJobRepository.findBySearchId(searchId)
                 .orElseThrow(() -> new NoSuchElementException("Search not found"));
 
@@ -243,7 +247,7 @@ public class SearchService {
                     .totalAttempted(job.getTotalAttempted())
                     .totalSuccessful(job.getTotalSuccessful())
                     .totalFailed(job.getTotalFailed())
-                    .errorMessage(job.getErrorMessage())
+                    .errorMessage(ClientErrorMessages.SEARCH_PROCESSING_FAILED)
                     .build();
         } else {
             return SearchResultsDto.builder()
@@ -293,6 +297,15 @@ public class SearchService {
         scrapingJobRepository.save(job);
         searchRequestRepository.save(request);
         return job;
+    }
+
+    /**
+     * Returns 404 for unknown searches and for searches owned by another user
+     * so callers cannot probe whether a UUID exists.
+     */
+    private void assertSearchOwnedByUser(UUID searchId, String userId) {
+        searchRequestRepository.findByIdAndUserId(searchId, userId)
+                .orElseThrow(() -> new NoSuchElementException("Search not found"));
     }
 
     private List<ApartmentScore> buildScores(List<Apartment> apartments, SearchRequest request) {

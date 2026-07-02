@@ -3,6 +3,8 @@ package com.nest.nestapp.exception;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.dao.DataAccessException;
@@ -27,6 +29,20 @@ import java.util.NoSuchElementException;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+
+    /** Invalid bearer token (bad signature, audience, expiry, etc.). */
+    @ExceptionHandler(AuthenticationServiceException.class)
+    public ResponseEntity<Map<String, Object>> handleAuthenticationService(AuthenticationServiceException ex) {
+        log.debug("Authentication service failure: {}", ex.getMessage());
+        return errorResponse(HttpStatus.UNAUTHORIZED, "Authentication required");
+    }
+
+    /** Missing or invalid authentication (e.g. no Google JWT on protected routes). */
+    @ExceptionHandler(AuthenticationCredentialsNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleUnauthenticated(AuthenticationCredentialsNotFoundException ex) {
+        log.debug("Unauthenticated request: {}", ex.getMessage());
+        return errorResponse(HttpStatus.UNAUTHORIZED, "Authentication required");
+    }
 
     /** Validation failures on @RequestBody (e.g. @NotNull, @Min, @Max). */
     @ExceptionHandler(MethodArgumentNotValidException.class)

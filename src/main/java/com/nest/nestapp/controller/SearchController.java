@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,13 +27,13 @@ public class SearchController {
 
     @PostMapping
     public ResponseEntity<SearchResponseDto> createSearch(@Valid @RequestBody SearchRequestDto request) {
-        SearchResponseDto response = searchService.createSearch(request);
+        SearchResponseDto response = searchService.createSearch(request, requireUserId());
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
     }
 
     @GetMapping("/{searchId}/results")
     public ResponseEntity<SearchResultsDto> getResults(@PathVariable UUID searchId) {
-        SearchResultsDto results = searchService.getResults(searchId);
+        SearchResultsDto results = searchService.getResults(searchId, requireUserId());
         
         if (results.getStatus() == com.nest.nestapp.model.JobStatus.COMPLETED) {
             return ResponseEntity.ok(results);
@@ -42,5 +43,14 @@ public class SearchController {
         } else {
             return ResponseEntity.status(HttpStatus.ACCEPTED).body(results);
         }
+    }
+
+    private static String requireUserId() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new org.springframework.security.authentication.AuthenticationCredentialsNotFoundException(
+                    "Authenticated Google user required");
+        }
+        return authentication.getName();
     }
 }

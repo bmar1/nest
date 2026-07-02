@@ -25,6 +25,10 @@ public class SearchRequest {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    /** Google JWT subject — stable account identifier for ownership checks. */
+    @Column(name = "user_id", nullable = false)
+    private String userId;
+
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(nullable = false, columnDefinition = "priority_type")

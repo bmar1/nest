@@ -9,10 +9,13 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.OffsetDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface SearchRequestRepository extends JpaRepository<SearchRequest, UUID> {
+
+    Optional<SearchRequest> findByIdAndUserId(UUID id, String userId);
 
     @Modifying
     @Query("UPDATE SearchRequest r SET r.status = :status WHERE r.id = :searchId")

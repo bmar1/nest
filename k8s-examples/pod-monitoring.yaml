@@ -16,6 +16,6 @@ spec:
     matchLabels:
       app: nest-api
   endpoints:
-    - port: 8080
+    - port: 8081
       path: /actuator/prometheus
       interval: 30s

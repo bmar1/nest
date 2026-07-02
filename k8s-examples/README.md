@@ -42,7 +42,7 @@ The main queue is still declared with a DLX for **unexpected** poison / reject s
 
 ### Activate the `gcp` profile
 
-In cluster env (API and worker), append **`gcp`** so logs are JSON for Cloud Logging and `/actuator/prometheus` is exposed, for example:
+In cluster env (API and worker), append **`gcp`** so logs are JSON for Cloud Logging and Prometheus is served on the **management port 8081** at `/actuator/prometheus` (not on the public API port 8080), for example:
 
 ```yaml
 env:
@@ -61,8 +61,8 @@ With `gcp`, stdout is **JSON** (`severity`, `message`, `logger`, MDC fields). HT
 ### Prometheus / GKE Managed Prometheus
 
 1. Enable [Google Cloud Managed Service for Prometheus](https://cloud.google.com/stackdriver/docs/managed-prometheus) on the cluster if needed.
-2. Apply a `PodMonitoring` manifest that selects your pods and scrapes **`/actuator/prometheus`** (see `k8s-examples/pod-monitoring.yaml` as a template).
-3. Restrict exposure: do **not** route `/actuator/prometheus` on a public ingress; rely on in-cluster scrape or network policy.
+2. Apply a `PodMonitoring` manifest that selects your pods and scrapes **`/actuator/prometheus` on port 8081** (see `k8s-examples/pod-monitoring.yaml` as a template).
+3. Restrict exposure: do **not** route port 8081 or `/actuator/prometheus` on a public ingress; rely on in-cluster scrape or network policy. Spring Security denies `/actuator/prometheus` on port 8080.
 
 ### Custom metric: scrape queue depth
 

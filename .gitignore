@@ -43,4 +43,3 @@ k8s/
 # Local-only config (do not commit)
 src/main/resources/application.properties
 src/nestapp-frontend/nestapp/.env
-src/nestapp-frontend/nestapp/.env.example

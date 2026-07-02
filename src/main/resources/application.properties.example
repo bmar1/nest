@@ -1,0 +1,9 @@
+# Copy to application.properties for local dev (that file is gitignored).
+# Docker Compose sets SPRING_DATASOURCE_* instead — no copy needed for compose.
+
+spring.datasource.url=jdbc:postgresql://localhost:5432/nest
+spring.datasource.username=postgres
+spring.datasource.password=postgres
+
+# Google OAuth client ID(s) for ID token validation (comma-separated for multiple clients).
+google.oauth.client-id=YOUR_GOOGLE_CLIENT_ID

@@ -99,6 +99,8 @@ Your chosen priority amplifies the dimension that matters most:
 
 ### Docker Compose (recommended)
 
+Set `GOOGLE_OAUTH_CLIENT_ID` to your Google OAuth web client ID (same value as frontend `VITE_GOOGLE_CLIENT_ID`), or use the Compose default for local smoke tests only.
+
 ```bash
 # Start all services
 docker compose up -d --build
@@ -127,10 +129,14 @@ docker run -d --name nest-postgres \
   -p 5432:5432 postgres:16-alpine
 
 # 2. Run Spring Boot API
+cp src/main/resources/application.properties.example src/main/resources/application.properties
+# Edit application.properties — set google.oauth.client-id and DB URL if needed
 ./mvnw spring-boot:run
 
 # 3. Run React frontend
 cd src/nestapp-frontend/nestapp
+cp .env.example .env
+# Edit .env — set VITE_GOOGLE_CLIENT_ID
 npm install && npm run dev
 ```
 

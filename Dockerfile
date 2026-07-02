@@ -8,6 +8,8 @@ COPY pom.xml ./
 RUN mvn dependency:go-offline -B
 
 COPY src ./src
+RUN test ! -f src/main/resources/application.properties || \
+    (echo "ERROR: Remove src/main/resources/application.properties before building Docker images" && exit 1)
 RUN mvn clean package -DskipTests -B
 
 # Runtime: glibc JRE (not Alpine). Alpine/musl can mis-resolve some DB hosts; more importantly,

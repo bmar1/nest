@@ -24,11 +24,10 @@ services:
       dockerfile: Dockerfile
     container_name: nest-api
     environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: nest
-      DB_USER: postgres
-      DB_PASSWORD: postgres
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/nest
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-local-dev-google-client-id}
     ports:
       - "8080:8080"
     depends_on:

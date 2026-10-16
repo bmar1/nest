@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { LogOut, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/components/AuthProvider'
@@ -8,6 +9,10 @@ export function ProfilePanel() {
   const { user, isAuthenticated, logout } = useAuth()
   const [loginOpen, setLoginOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const { pathname } = useLocation()
+  const navHasSignIn = pathname === '/' || pathname === '/search'
+
+  if (!isAuthenticated && navHasSignIn) return null
 
   return (
     <>
